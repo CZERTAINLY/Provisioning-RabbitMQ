@@ -1,3 +1,5 @@
+server:
+  port: ${PORT:8077}
 rabbitmq:
   management-url: ${RABBITMQ_URL:http://localhost:15672}
   username: ${USERNAME}
