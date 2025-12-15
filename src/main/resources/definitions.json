@@ -59,7 +59,7 @@
     {
       "name": "czertainly",
       "vhost": "/",
-      "type": "direct",
+      "type": "topic",
       "durable": true,
       "auto_delete": false,
       "internal": false,
