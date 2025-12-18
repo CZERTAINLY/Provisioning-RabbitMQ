@@ -14,13 +14,71 @@ The **rabbitmq-bootstrap** is a utility service designed as part of the [CZERTAI
 
 ## Overview
 
+**Note**: For now there is no authentication for the service.
+
 The service runs as a web application and exposes REST endpoints for:
 1. **Importing definitions** - Bulk creation of exchanges, queues, and bindings from a JSON file
 2. **Managing proxies** - Creating proxy communication infrastructure for CZERTAINLY connectors
 
-There are two REST endpoints available:
-* /api/import-definitions (GET) - imports definitions from the file specified in application.yml
-* /api/add-proxy (GET) - adds a proxy exchange to the RabbitMQ broker. GET params are "proxyName" and "vhost" (optional, default is "/"). Example: "/api/add-proxy?proxyName=my-proxy&vhost=/my-vhost 
+### REST Endpoints
+
+All endpoints return **JSON responses** (both success and error cases).
+
+#### `/api/import-definitions` (PUT)
+Imports definitions from the file specified in `application.yml` or from a custom JSON provided in the request body.
+
+**Response (Success - 200 OK):**
+```json
+{
+  "stats": {
+    "EXCHANGE": {
+      "my-exchange": "200 - Created"
+    },
+    "QUEUE": {
+      "my-queue": "204 - Not created, already exists"
+    },
+    "BINDING": {
+      "my-exchange-routing.key-my-queue": "200 - Created"
+    }
+  }
+}
+```
+
+**Response (Error - 400/500):**
+```json
+{
+  "error": "Invalid JSON: Unexpected character..."
+}
+```
+
+#### `/api/add-proxy` (PUT)
+Adds a proxy to the RabbitMQ broker. Query parameters: `proxyName` (required), `vhost` (optional, default is "/").
+
+**Response (Success - 200 OK):**
+```json
+{
+  "stats": {
+    "EXCHANGE": {
+      "proxy": "204 - Not created, already exists"
+    },
+    "QUEUE": {
+      "my-proxy": "200 - Created",
+      "proxy-response": "204 - Not created, already exists"
+    },
+    "BINDING": {
+      "proxy-request.my-proxy-my-proxy": "200 - Created",
+      "proxy-response.*-proxy-response": "204 - Not created, already exists"
+    }
+  }
+}
+```
+
+**Response (Error - 400/500):**
+```json
+{
+  "error": "proxyName must be 1-255 characters and contain only letters, numbers, underscores and hyphens"
+}
+``` 
 
 ## Prerequisites
 
@@ -74,14 +132,40 @@ The application will start on port 8077 (configurable via PORT environment varia
 
 ### Using the endpoints
 
-Import definitions:
+Import definitions (from default file):
 ```bash
-curl http://localhost:8077/api/import-definitions
+curl -X PUT http://localhost:8077/api/import-definitions
+```
+
+Import definitions (with custom JSON):
+```bash
+curl -X PUT http://localhost:8077/api/import-definitions \
+  -H "Content-Type: application/json" \
+  -d @my-definitions.json
 ```
 
 Add a proxy:
 ```bash
-curl "http://localhost:8077/api/add-proxy?proxyName=connector-x509&vhost=/"
+curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509&vhost=/"
+```
+
+Example response:
+```json
+{
+  "stats": {
+    "EXCHANGE": {
+      "proxy": "200 - Created"
+    },
+    "QUEUE": {
+      "connector-x509": "200 - Created",
+      "proxy-response": "200 - Created"
+    },
+    "BINDING": {
+      "proxy-request.connector-x509-connector-x509": "200 - Created",
+      "proxy-response.*-proxy-response": "200 - Created"
+    }
+  }
+}
 ```
 
 ## Docker

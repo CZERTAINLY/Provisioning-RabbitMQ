@@ -1,15 +1,14 @@
 package com.czertainly.rabbitImporter.api;
 
+import com.czertainly.rabbitImporter.model.ErrorResponse;
+import com.czertainly.rabbitImporter.model.OperationResult;
 import com.czertainly.rabbitImporter.service.RabbitConfigurationException;
 import com.czertainly.rabbitImporter.service.ImportDefinitionsService;
 import com.czertainly.rabbitImporter.service.RabbitProxyManagementService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -27,38 +26,49 @@ public class RestApi {
         this.rabbitProxyManagementService = rabbitProxyManagementService;
     }
 
-    @GetMapping("/import-definitions")
-    public ResponseEntity<String> importDefinitions() {
+    @PutMapping("/import-definitions")
+    public ResponseEntity<?> importDefinitions(@RequestBody(required = false) String definitionsJson) {
+        logger.info("Received import-definitions request, hasBody={}", definitionsJson != null);
+
         try {
-            importDefinitionsService.importDefinitions();
-            return ResponseEntity.ok("RabbitMQ import done.");
+            OperationResult operationResult = importDefinitionsService.importDefinitions(definitionsJson);
+            logger.info("Successfully imported definitions, returning stats");
+            return ResponseEntity.ok(operationResult);
+        } catch (JsonProcessingException e) {
+            logger.error("Invalid JSON provided: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid JSON: " + e.getMessage()));
         } catch (RabbitConfigurationException e) {
-            logger.error("Import failed", e);
-            return ResponseEntity.internalServerError().body("Import failed. Check server logs for details.");
+            logger.error("Import failed: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(new ErrorResponse("Import failed: " + e.getMessage()));
         }
     }
 
-    @GetMapping("/add-proxy")
-    public ResponseEntity<String> addProxyToRabbit(@RequestParam String proxyName, @RequestParam(required = false) String vhost) {
+
+    @PutMapping("/add-proxy")
+    public ResponseEntity<?> addProxyToRabbit(@RequestParam String proxyName, @RequestParam(required = false) String vhost) {
+        logger.info("Received add-proxy request: proxyName={}, vhost={}", proxyName, vhost != null ? vhost : "not provided");
+
         if (vhost == null || vhost.isBlank()) {
             vhost = "/";
         }
+
         if (proxyName == null || proxyName.isBlank()) {
-            return ResponseEntity.badRequest().body("proxyName is required");
+            logger.warn("Validation failed: proxyName is required");
+            return ResponseEntity.badRequest().body(new ErrorResponse("proxyName is required"));
         }
-        if (!proxyName.matches("^[a-zA-Z0-9_-]+$")) {
-            logger.warn("Invalid proxyName format: {}", proxyName);
-            return ResponseEntity.badRequest().body("proxyName can only contain letters, numbers, underscores and hyphens");
+        if (!proxyName.matches("^[a-zA-Z0-9_-]{1,255}$")) {
+            logger.warn("Validation failed: Invalid proxyName format");
+            return ResponseEntity.badRequest().body(new ErrorResponse("proxyName must be 1-255 characters and contain only letters, numbers, underscores and hyphens"));
         }
-        if (proxyName.length() > 255) {
-            return ResponseEntity.badRequest().body("proxyName is too long (max 255 characters)");
-        }
+
         try {
-            rabbitProxyManagementService.addProxy(proxyName, vhost);
-            return ResponseEntity.ok("Proxy added.");
+            OperationResult result = rabbitProxyManagementService.addProxy(proxyName, vhost);
+            logger.info("Successfully added proxy '{}' in vhost '{}', returning stats", proxyName, vhost);
+            return ResponseEntity.ok(result);
+
         } catch (RabbitConfigurationException e) {
-            logger.error("Failed to add proxy: {}", proxyName, e);
-            return ResponseEntity.internalServerError().body("Failed to add proxy. Check server logs.");
+            logger.error("Failed to add proxy '{}' in vhost '{}': {}", proxyName, vhost, e.getMessage());
+            return ResponseEntity.internalServerError().body(new ErrorResponse("Failed to add proxy '" + proxyName + "': " + e.getMessage()));
         }
     }
 }

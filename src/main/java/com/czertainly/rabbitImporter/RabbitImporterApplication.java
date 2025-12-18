@@ -12,14 +12,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties({RabbitMQProperties.class})
 public class RabbitImporterApplication {
 
-    private static final Logger log = LoggerFactory.getLogger(RabbitImporterApplication.class);
-
-    private final ImportDefinitionsService service;
-
-    public RabbitImporterApplication(ImportDefinitionsService service) {
-        this.service = service;
-    }
-
     public static void main(String[] args) {
         SpringApplication.run(RabbitImporterApplication.class, args);
     }
