@@ -24,6 +24,51 @@ public class RabbitApiService {
         this.restClient = restClient;
     }
 
+    public void createVhostIfNotExist(String vhost, OperationResult stats) {
+        if ("/".equals(vhost)) {
+            logger.info("Vhost '/' already exists, skipping creation");
+            return;
+        }
+        logger.info("Creating vhost: {}", vhost);
+        String body = """
+                {
+                  "description": "automatically created by rabbitmq-bootstrap",
+                  "default_queue_type": "quorum",
+                  "protected_from_deletion": false
+                }
+                """;
+
+        ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/vhosts/{vhost}", vhost);
+        int statusCode = response.getStatusCode().value();
+        if (statusCode == 201) {
+            stats.addStats(OperationResult.ObjectType.VHOST, vhost, "201 - Created");
+        } else if (statusCode == 204) {
+            stats.addStats(OperationResult.ObjectType.VHOST, vhost, "204 - Already exists");
+        } else {
+            logger.warn("Unexpected status code {} for vhost creation: {}", statusCode, vhost);
+        }
+    }
+
+    public void createUserRightsForVhost(String vhost, String username, OperationResult stats) {
+        logger.info("Creating user rights for vhost: {}, username: {}", vhost, username);
+        String body = """
+                {
+                    "configure": "^$",
+                    "write": ".*",
+                    "read": ".*"
+                  }
+                """;
+        ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/permissions/{vhost}/{user}", vhost, username);
+        int statusCode = response.getStatusCode().value();
+
+        if (statusCode == 201) {
+            stats.addStats(OperationResult.ObjectType.VHOSTRIGHTS, vhost + "-" + username, "201 - Created");
+            logger.info("User rights created: vhost={}, username={}", vhost, username);
+        } else {
+            logger.warn("Unexpected status code {} for user rights creation: vhost={}, username={}", statusCode, vhost, username);
+        }
+    }
+
     public void createBindingIfNotExist(String exchangeName, String routingKey, String queueName, String vhost, OperationResult stats) {
         logger.info("Creating binding for exchange: {}, routingKey: {}, queueName: {}, vhost: {}", exchangeName, routingKey, queueName, vhost);
         String body = """
@@ -36,7 +81,7 @@ public class RabbitApiService {
         int statusCode = response.getStatusCode().value();
 
         if (statusCode == 201) {
-            stats.bindingCreated(exchangeName + "-" + routingKey + "-" + queueName);
+            stats.addStats(OperationResult.ObjectType.BINDING, vhost + " | " + exchangeName + " | " + queueName + " | " + routingKey, "201 - Created");
             logger.info("Binding created: exchange={}, routingKey={}, queue={}, vhost={}", exchangeName, routingKey, queueName, vhost);
         } else {
             logger.warn("Unexpected status code {} for binding creation: exchange={}, routingKey={}, queue={}, vhost={}",
@@ -61,10 +106,10 @@ public class RabbitApiService {
         int statusCode = response.getStatusCode().value();
 
         if (statusCode == 201) {
-            stats.queueCreated(queueName);
+            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, "201 - Created");
             logger.info("Queue created: name={}, vhost={}", queueName, vhost);
         } else if (statusCode == 204) {
-            stats.queueAlreadyExists(queueName);
+            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, "204 - Already exists");
             logger.info("Queue already exists: name={}, vhost={}", queueName, vhost);
         } else {
             logger.warn("Unexpected status code {} for queue creation: name={}, vhost={}", statusCode, queueName, vhost);
@@ -87,10 +132,10 @@ public class RabbitApiService {
         int statusCode = response.getStatusCode().value();
 
         if (statusCode == 201) {
-            stats.exchangeCreated(exchangeName);
+            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, "201 - Created");
             logger.info("Exchange created: name={}, vhost={}", exchangeName, vhost);
         } else if (statusCode == 204) {
-            stats.exchangeAlreadyExists(exchangeName);
+            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, "204 - Already exists");
             logger.info("Exchange already exists: name={}, vhost={}", exchangeName, vhost);
         } else {
             logger.warn("Unexpected status code {} for exchange creation: name={}, vhost={}", statusCode, exchangeName, vhost);

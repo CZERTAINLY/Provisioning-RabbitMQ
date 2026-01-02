@@ -10,6 +10,7 @@ public record Definitions(
 ) {
     public record Exchange(
             String name,
+            String vhost,
             String type,
             boolean durable,
             boolean auto_delete,
@@ -17,6 +18,7 @@ public record Definitions(
     {}
     public record Queue(
             String name,
+            String vhost,
             boolean durable,
             boolean auto_delete,
             Map<String, Object> arguments)

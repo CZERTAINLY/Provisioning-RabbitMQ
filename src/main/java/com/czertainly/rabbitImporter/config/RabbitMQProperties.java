@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record RabbitMQProperties(
         String managementUrl,
         String username,
-        String password,
-        String vhost
+        String password
 ) {
 }

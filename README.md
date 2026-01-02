@@ -25,20 +25,32 @@ The service runs as a web application and exposes REST endpoints for:
 All endpoints return **JSON responses** (both success and error cases).
 
 #### `/api/import-definitions` (PUT)
-Imports definitions from the file specified in `application.yml` or from a custom JSON provided in the request body.
+Imports definitions from the file specified in `application.yml` (by default it is `definitions.json`) or from a custom JSON provided in the request body.
+Format of Definitions is described in section **'Import file'**.
+
+**Query Parameters:**
+- `username` (optional) - Username for vhost permissions. Required when definitions contain non-default vhosts (other than "/").
+
+**Note:** The service automatically creates vhosts defined in the definitions file and sets up user permissions.
 
 **Response (Success - 200 OK):**
 ```json
 {
   "stats": {
+    "VHOST": {
+      "czertainly": "201 - Created"
+    },
+    "VHOSTRIGHTS": {
+      "czertainly-admin": "201 - Created"
+    },
     "EXCHANGE": {
-      "my-exchange": "200 - Created"
+      "my-exchange": "201 - Created"
     },
     "QUEUE": {
-      "my-queue": "204 - Not created, already exists"
+      "my-queue": "204 - Already exists"
     },
     "BINDING": {
-      "my-exchange-routing.key-my-queue": "200 - Created"
+      "my-exchange-routing.key-my-queue": "201 - Created"
     }
   }
 }
@@ -52,22 +64,35 @@ Imports definitions from the file specified in `application.yml` or from a custo
 ```
 
 #### `/api/add-proxy` (PUT)
-Adds a proxy to the RabbitMQ broker. Query parameters: `proxyName` (required), `vhost` (optional, default is "/").
+Adds a proxy to the RabbitMQ broker.
+
+**Query Parameters:**
+- `proxyName` (required) - Name of the proxy (1-255 characters, alphanumeric with underscores and hyphens)
+- `vhost` (optional, default: "/") - Virtual host name
+- `username` (optional) - Username for vhost permissions. Required when vhost is not "/".
+
+**Note:** The service automatically creates the vhost if it doesn't exist and sets up user permissions.
 
 **Response (Success - 200 OK):**
 ```json
 {
   "stats": {
+    "VHOST": {
+      "czertainly": "201 - Created"
+    },
+    "VHOSTRIGHTS": {
+      "czertainly-admin": "201 - Created"
+    },
     "EXCHANGE": {
-      "proxy": "204 - Not created, already exists"
+      "proxy": "204 - Already exists"
     },
     "QUEUE": {
-      "my-proxy": "200 - Created",
-      "proxy-response": "204 - Not created, already exists"
+      "my-proxy": "201 - Created",
+      "proxy-response": "204 - Already exists"
     },
     "BINDING": {
-      "proxy-request.my-proxy-my-proxy": "200 - Created",
-      "proxy-response.*-proxy-response": "204 - Not created, already exists"
+      "proxy-request.my-proxy-my-proxy": "201 - Created",
+      "proxy-response.*-proxy-response": "204 - Already exists"
     }
   }
 }
@@ -99,12 +124,12 @@ in this table you can find all environment variables that can be used to overrid
 
 | Variable           | Description                                                                                                   | Required                                           | Default value            |
 |--------------------|---------------------------------------------------------------------------------------------------------------|----------------------------------------------------|--------------------------|
-| `PORT`             | application port                                                                                              | ![](https://img.shields.io/badge/-NO-red.svg)      | `8077`                   |
-| `RABBITMQ_URL`     | RabbitMQ URL with port (f.e. http://localhost:15672)                                                          | ![](https://img.shields.io/badge/-NO-red.svg)      | `http://localhost:15672` |
-| `USERNAME`         | Username with rights for creating queues, exchanges and bindings                                              | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
-| `PASSWORD`         | Its password                                                                                                  | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
-| `VHOST`            | RabbitMQ vhost                                                                                                | ![](https://img.shields.io/badge/-NO-red.svg)      | `/`                      |
-| `DEFINITIONS_FILE` | json file with definitions of queues, exchanges and bindings [doc](https://www.rabbitmq.com/docs/definitions) | ![](https://img.shields.io/badge/-NO-red.svg)      | `definitions.json`       |
+| `PORT`             | Application port                                                                                              | ![](https://img.shields.io/badge/-NO-red.svg)      | `8077`                   |
+| `RABBITMQ_URL`     | RabbitMQ Management API URL with port (e.g. http://localhost:15672)                                           | ![](https://img.shields.io/badge/-NO-red.svg)      | `http://localhost:15672` |
+| `USERNAME`         | RabbitMQ admin username with rights for creating vhosts, queues, exchanges and bindings                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
+| `PASSWORD`         | RabbitMQ admin password                                                                                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
+| `VHOST`            | Default RabbitMQ vhost (can be overridden in definitions file)                                                | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly`             |
+| `DEFINITIONS_FILE` | JSON file with definitions of queues, exchanges and bindings [doc](https://www.rabbitmq.com/docs/definitions) | ![](https://img.shields.io/badge/-NO-red.svg)      | `definitions.json`       |
 
 
 ## Import file
@@ -134,35 +159,46 @@ The application will start on port 8077 (configurable via PORT environment varia
 
 Import definitions (from default file):
 ```bash
-curl -X PUT http://localhost:8077/api/import-definitions
+curl -X PUT "http://localhost:8077/api/import-definitions?username=admin"
 ```
 
 Import definitions (with custom JSON):
 ```bash
-curl -X PUT http://localhost:8077/api/import-definitions \
+curl -X PUT "http://localhost:8077/api/import-definitions?username=admin" \
   -H "Content-Type: application/json" \
   -d @my-definitions.json
 ```
 
-Add a proxy:
+Add a proxy (default vhost "/"):
 ```bash
-curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509&vhost=/"
+curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509"
+```
+
+Add a proxy (custom vhost):
+```bash
+curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509&vhost=czertainly&username=admin"
 ```
 
 Example response:
 ```json
 {
   "stats": {
+    "VHOST": {
+      "czertainly": "201 - Created"
+    },
+    "VHOSTRIGHTS": {
+      "czertainly-admin": "201 - Created"
+    },
     "EXCHANGE": {
-      "proxy": "200 - Created"
+      "proxy": "201 - Created"
     },
     "QUEUE": {
-      "connector-x509": "200 - Created",
-      "proxy-response": "200 - Created"
+      "connector-x509": "201 - Created",
+      "proxy-response": "201 - Created"
     },
     "BINDING": {
-      "proxy-request.connector-x509-connector-x509": "200 - Created",
-      "proxy-response.*-proxy-response": "200 - Created"
+      "proxy-request.connector-x509-connector-x509": "201 - Created",
+      "proxy-response.*-proxy-response": "201 - Created"
     }
   }
 }
@@ -206,9 +242,6 @@ docker run -d \
 The service expects an external RabbitMQ instance. Create a `.env` file with your RabbitMQ connection details:
 
 ```bash
-# Copy the example environment file
-cp .env.example .env
-
 # Edit .env with your RabbitMQ connection details
 # USERNAME=admin
 # PASSWORD=admin
