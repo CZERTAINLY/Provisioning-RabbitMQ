@@ -1,8 +1,9 @@
+server:
+  port: ${PORT:8077}
 rabbitmq:
   management-url: ${RABBITMQ_URL:http://localhost:15672}
   username: ${USERNAME}
   password: ${PASSWORD}
-  vhost: ${VHOST:/}
   definitions-file: ${DEFINITIONS_FILE:definitions.json}
 
 logging:
