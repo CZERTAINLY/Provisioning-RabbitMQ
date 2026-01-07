@@ -128,7 +128,6 @@ in this table you can find all environment variables that can be used to overrid
 | `RABBITMQ_URL`     | RabbitMQ Management API URL with port (e.g. http://localhost:15672)                                           | ![](https://img.shields.io/badge/-NO-red.svg)      | `http://localhost:15672` |
 | `USERNAME`         | RabbitMQ admin username with rights for creating vhosts, queues, exchanges and bindings                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
 | `PASSWORD`         | RabbitMQ admin password                                                                                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
-| `VHOST`            | Default RabbitMQ vhost (can be overridden in definitions file)                                                | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly`             |
 | `DEFINITIONS_FILE` | JSON file with definitions of queues, exchanges and bindings [doc](https://www.rabbitmq.com/docs/definitions) | ![](https://img.shields.io/badge/-NO-red.svg)      | `definitions.json`       |
 
 

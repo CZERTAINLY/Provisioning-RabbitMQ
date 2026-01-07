@@ -3,6 +3,7 @@ package com.czertainly.rabbitImporter.service;
 import com.czertainly.rabbitImporter.config.RabbitMQProperties;
 import com.czertainly.rabbitImporter.model.OperationResult;
 import org.slf4j.Logger;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,11 +40,11 @@ public class RabbitApiService {
                 """;
 
         ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/vhosts/{vhost}", vhost);
-        int statusCode = response.getStatusCode().value();
-        if (statusCode == 201) {
-            stats.addStats(OperationResult.ObjectType.VHOST, vhost, "201 - Created");
-        } else if (statusCode == 204) {
-            stats.addStats(OperationResult.ObjectType.VHOST, vhost, "204 - Already exists");
+        HttpStatusCode statusCode = response.getStatusCode();
+        if (statusCode.isSameCodeAs(HttpStatus.CREATED)) {
+            stats.addStats(OperationResult.ObjectType.VHOST, vhost, formatStatus(statusCode));
+        } else if (statusCode.isSameCodeAs(HttpStatus.NO_CONTENT)) {
+            stats.addStats(OperationResult.ObjectType.VHOST, vhost, formatStatus(statusCode) + " (already exists)");
         } else {
             logger.warn("Unexpected status code {} for vhost creation: {}", statusCode, vhost);
         }
@@ -59,13 +60,13 @@ public class RabbitApiService {
                   }
                 """;
         ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/permissions/{vhost}/{user}", vhost, username);
-        int statusCode = response.getStatusCode().value();
+        HttpStatusCode statusCode = response.getStatusCode();
 
-        if (statusCode == 201) {
-            stats.addStats(OperationResult.ObjectType.VHOSTRIGHTS, vhost + "-" + username, "201 - Created");
+        if (statusCode.isSameCodeAs(HttpStatus.CREATED)) {
+            stats.addStats(OperationResult.ObjectType.VHOSTRIGHTS, vhost + "-" + username, formatStatus(statusCode));
             logger.info("User rights created: vhost={}, username={}", vhost, username);
         } else {
-            logger.warn("Unexpected status code {} for user rights creation: vhost={}, username={}", statusCode, vhost, username);
+            logger.warn("Unexpected status code {} for user rights creation: vhost={}, username={}", statusCode.value(), vhost, username);
         }
     }
 
@@ -78,14 +79,14 @@ public class RabbitApiService {
                 """.formatted(routingKey);
 
         ResponseEntity<String> response = callPost(body, rabbitMQProperties.managementUrl() + "/api/bindings/{vhost}/e/{exchange}/q/{queue}", vhost, exchangeName, queueName);
-        int statusCode = response.getStatusCode().value();
+        HttpStatusCode statusCode = response.getStatusCode();
 
-        if (statusCode == 201) {
-            stats.addStats(OperationResult.ObjectType.BINDING, vhost + " | " + exchangeName + " | " + queueName + " | " + routingKey, "201 - Created");
+        if (statusCode.isSameCodeAs(HttpStatus.CREATED)) {
+            stats.addStats(OperationResult.ObjectType.BINDING, vhost + " | " + exchangeName + " | " + queueName + " | " + routingKey, formatStatus(statusCode));
             logger.info("Binding created: exchange={}, routingKey={}, queue={}, vhost={}", exchangeName, routingKey, queueName, vhost);
         } else {
             logger.warn("Unexpected status code {} for binding creation: exchange={}, routingKey={}, queue={}, vhost={}",
-                    statusCode, exchangeName, routingKey, queueName, vhost);
+                    statusCode.value(), exchangeName, routingKey, queueName, vhost);
         }
     }
 
@@ -103,16 +104,16 @@ public class RabbitApiService {
                 """;
 
         ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/queues/{vhost}/{name}", vhost, queueName);
-        int statusCode = response.getStatusCode().value();
+        HttpStatusCode statusCode = response.getStatusCode();
 
-        if (statusCode == 201) {
-            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, "201 - Created");
+        if (statusCode.isSameCodeAs(HttpStatus.CREATED)) {
+            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, formatStatus(statusCode));
             logger.info("Queue created: name={}, vhost={}", queueName, vhost);
-        } else if (statusCode == 204) {
-            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, "204 - Already exists");
+        } else if (statusCode.isSameCodeAs(HttpStatus.NO_CONTENT)) {
+            stats.addStats(OperationResult.ObjectType.QUEUE, queueName, formatStatus(statusCode) + " - (created)");
             logger.info("Queue already exists: name={}, vhost={}", queueName, vhost);
         } else {
-            logger.warn("Unexpected status code {} for queue creation: name={}, vhost={}", statusCode, queueName, vhost);
+            logger.warn("Unexpected status code {} for queue creation: name={}, vhost={}", statusCode.value(), queueName, vhost);
         }
     }
 
@@ -129,16 +130,16 @@ public class RabbitApiService {
                 """;
 
         ResponseEntity<String> response = callPut(body, rabbitMQProperties.managementUrl() + "/api/exchanges/{vhost}/{name}", vhost, exchangeName);
-        int statusCode = response.getStatusCode().value();
+        HttpStatusCode statusCode = response.getStatusCode();
 
-        if (statusCode == 201) {
-            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, "201 - Created");
+        if (statusCode.isSameCodeAs(HttpStatus.CREATED)) {
+            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, formatStatus(statusCode));
             logger.info("Exchange created: name={}, vhost={}", exchangeName, vhost);
-        } else if (statusCode == 204) {
-            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, "204 - Already exists");
+        } else if (statusCode.isSameCodeAs(HttpStatus.NO_CONTENT)) {
+            stats.addStats(OperationResult.ObjectType.EXCHANGE, exchangeName, formatStatus(statusCode) + " - (created)");
             logger.info("Exchange already exists: name={}, vhost={}", exchangeName, vhost);
         } else {
-            logger.warn("Unexpected status code {} for exchange creation: name={}, vhost={}", statusCode, exchangeName, vhost);
+            logger.warn("Unexpected status code {} for exchange creation: name={}, vhost={}", statusCode.value(), exchangeName, vhost);
         }
     }
 
@@ -200,5 +201,12 @@ public class RabbitApiService {
         }
     }
 
+    private String formatStatus(HttpStatusCode statusCode) {
+        HttpStatus status = HttpStatus.resolve(statusCode.value());
+        if (status != null) {
+            return status.value() + " - " + status.getReasonPhrase();
+        }
+        return statusCode.value() + " - Unknown";
+    }
 
 }

@@ -16,7 +16,6 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL:-http://host.docker.internal:15672}
 
       # Optional: Override defaults
-      VHOST: ${VHOST:-/}
       DEFINITIONS_FILE: ${DEFINITIONS_FILE:-definitions.json}
       PORT: ${PORT:-8077}
     # Uncomment for Linux to use host networking (allows localhost)
