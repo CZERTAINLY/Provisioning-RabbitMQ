@@ -1,12 +1,14 @@
 package com.czertainly.rabbitImporter.api;
 
+import com.czertainly.rabbitImporter.config.User;
 import com.czertainly.rabbitImporter.model.ErrorResponse;
 import com.czertainly.rabbitImporter.model.OperationResult;
-import com.czertainly.rabbitImporter.service.RabbitConfigurationException;
 import com.czertainly.rabbitImporter.service.ImportDefinitionsService;
+import com.czertainly.rabbitImporter.service.RabbitConfigurationException;
 import com.czertainly.rabbitImporter.service.RabbitProxyManagementService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -27,13 +29,12 @@ public class RestApi {
         this.rabbitProxyManagementService = rabbitProxyManagementService;
     }
 
-    @PutMapping("/import-definitions")
-    public ResponseEntity<?> importDefinitions(@RequestParam(required = false) String username,
-                                               @RequestBody(required = false) String definitionsJson) {
+    @PutMapping(value = "/import-definitions", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> importDefinitions(@RequestBody(required = false) String definitionsJson) {
         logger.info("Received import-definitions request, hasBody={}", definitionsJson != null);
 
         try {
-            OperationResult operationResult = importDefinitionsService.importDefinitions(definitionsJson, username);
+            OperationResult operationResult = importDefinitionsService.importDefinitions(definitionsJson);
             logger.info("Successfully imported definitions, returning stats");
             return ResponseEntity.ok(operationResult);
         } catch (JsonProcessingException e) {
@@ -46,20 +47,22 @@ public class RestApi {
         }
     }
 
-
     @PutMapping("/add-proxy")
     public ResponseEntity<?> addProxyToRabbit(@RequestParam String proxyName,
                                               @RequestParam(required = false) String vhost,
-                                              @RequestParam(required = false) String username) {
+                                              @RequestParam String username,
+                                              @RequestParam String password) {
         logger.info("Received add-proxy request: proxyName={}, vhost={}", proxyName, vhost != null ? vhost : "not provided");
 
         if (vhost == null || vhost.isBlank()) {
             vhost = "/";
         }
 
-        if (!vhost.equals("/") && !StringUtils.hasText(username)) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Username must be provided when vhost is not '/'."));
+        if (!"/".equals(vhost) && (!StringUtils.hasText(username) || !StringUtils.hasText(password))) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Username and password required to be non-empty for non-default vhost"));
         }
+        User user = new User(username, password, true);
 
         if (proxyName == null || proxyName.isBlank()) {
             logger.warn("Validation failed: proxyName is required");
@@ -71,7 +74,7 @@ public class RestApi {
         }
 
         try {
-            OperationResult result = rabbitProxyManagementService.addProxy(proxyName, vhost, username);
+            OperationResult result = rabbitProxyManagementService.addProxy(proxyName, vhost, user);
             logger.info("Successfully added proxy '{}' in vhost '{}', returning stats", proxyName, vhost);
             return ResponseEntity.ok(result);
 

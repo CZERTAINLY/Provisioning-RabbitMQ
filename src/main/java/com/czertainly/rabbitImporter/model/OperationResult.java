@@ -7,13 +7,14 @@ public class OperationResult {
     private final Map<ObjectType, Map<String, String>> stats;
 
     public enum ObjectType {
-        QUEUE, EXCHANGE, BINDING, VHOST, VHOSTRIGHTS
+        QUEUE, EXCHANGE, BINDING, VHOST, USER, USERRIGHTS
     }
 
     public OperationResult() {
         stats = new HashMap<>();
+        stats.put(ObjectType.USER, new HashMap<>());
         stats.put(ObjectType.VHOST, new HashMap<>());
-        stats.put(ObjectType.VHOSTRIGHTS, new HashMap<>());
+        stats.put(ObjectType.USERRIGHTS, new HashMap<>());
         stats.put(ObjectType.QUEUE, new HashMap<>());
         stats.put(ObjectType.EXCHANGE, new HashMap<>());
         stats.put(ObjectType.BINDING, new HashMap<>());

@@ -1,6 +1,6 @@
 package com.czertainly.rabbitImporter.service;
 
-import com.czertainly.rabbitImporter.config.RabbitMQProperties;
+import com.czertainly.rabbitImporter.config.User;
 import com.czertainly.rabbitImporter.model.Definitions;
 import com.czertainly.rabbitImporter.model.OperationResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ImportDefinitionsService {
@@ -25,18 +25,32 @@ public class ImportDefinitionsService {
     private final ObjectMapper mapper;
 
     private final RabbitApiService rabbitApiService;
+    private final User coreUser;
 
     @Value("${rabbitmq.definitions-file}")
     private String definitionsFile;
 
-    public ImportDefinitionsService(RabbitApiService rabbitApiService, ObjectMapper mapper) {
+    public ImportDefinitionsService(RabbitApiService rabbitApiService, ObjectMapper mapper, User coreUser) {
         this.rabbitApiService = rabbitApiService;
         this.mapper = mapper;
+        this.coreUser = coreUser;
     }
 
-    public OperationResult importDefinitions(String jsonDefinitions, String username) throws RabbitConfigurationException, JsonProcessingException {
+    /**
+     * Configs RabbitMQ for czertailnly-core scheduler and internal communication
+     * @param jsonDefinitions rabbitMQ definitions in JSON format
+     * @return stats of the operation
+     * @throws RabbitConfigurationException
+     * @throws JsonProcessingException
+     */
+    public OperationResult importDefinitions(String jsonDefinitions) throws RabbitConfigurationException, JsonProcessingException {
         logger.info("=== Starting RabbitMQ definitions import from file {} ===", definitionsFile);
         OperationResult operationResult = new OperationResult();
+
+        if (coreUser.create() && StringUtils.hasText(coreUser.password())) {
+            rabbitApiService.createUserIfNotExist(coreUser, operationResult);
+        }
+
         Definitions defs;
         if (jsonDefinitions != null) {
             defs = mapper.readValue(jsonDefinitions, Definitions.class);
@@ -44,9 +58,10 @@ public class ImportDefinitionsService {
             defs = loadDefinitions();
         }
 
-        createVhost(defs, username, operationResult);
+        createVhost(defs, coreUser.username(), operationResult);
         createExchanges(defs, operationResult);
         createQueues(defs, operationResult);
+        createUserRights(defs, coreUser, operationResult);
         createBindings(defs, operationResult);
 
         logger.info("=== RabbitMQ import done. ===");
@@ -83,7 +98,6 @@ public class ImportDefinitionsService {
         logger.info("Creating found vhosts: {}", vhosts);
         for (String vhost : vhosts) {
             rabbitApiService.createVhostIfNotExist(vhost, stats);
-            rabbitApiService.createUserRightsForVhost(vhost, username, stats);
         }
     }
 
@@ -92,7 +106,7 @@ public class ImportDefinitionsService {
 
         for (Definitions.Exchange exchange : defs.exchanges()) {
             logger.info("   -> Creating exchange: {}", exchange.name());
-            rabbitApiService.createExchangeIfNotExist(exchange.name(), exchange.vhost(), stats);
+            rabbitApiService.createExchangeIfNotExist(exchange, stats);
         }
     }
 
@@ -101,8 +115,31 @@ public class ImportDefinitionsService {
 
         for (Definitions.Queue queue : defs.queues()) {
             logger.info("   -> Creating queue: {}", queue.name());
-            rabbitApiService.createQueueIfNotExist(queue.name(), queue.vhost(), stats);
+            rabbitApiService.createQueueIfNotExist(queue, stats);
         }
+    }
+
+    private void createUserRights(Definitions defs, User user, OperationResult stats) {
+        logger.info("Creating user rights for core user: {}", user.username());
+        Set<String> exchanges = defs.exchanges().stream().map(Definitions.Exchange::name).collect(Collectors.toSet());
+        Set<String> escapedExchanges = exchanges.stream().map(this::escapeErlangRegex).collect(Collectors.toSet());
+        String writeRegExp = "^(" + String.join("|", escapedExchanges) + ")$";
+
+        Set<String> queues = defs.queues().stream().map(Definitions.Queue::name).collect(Collectors.toSet());
+        Set<String> escapedQueues = queues.stream().map(this::escapeErlangRegex).collect(Collectors.toSet());
+        String readRegExp = "^(" + String.join("|", escapedQueues) + ")$";
+
+        // expect queues and exchanges to be in the same vhost
+        String vhost = null;
+        if (!defs.queues().isEmpty()) {
+            vhost = defs.queues().getFirst().vhost();
+        }
+
+        if (vhost == null && !defs.exchanges().isEmpty()) {
+            vhost = defs.exchanges().getFirst().vhost();
+        }
+
+        rabbitApiService.createUserRightsForCoreUser(vhost, user.username(), readRegExp, writeRegExp, stats);
     }
 
     private void createBindings(Definitions defs, OperationResult stats) {
@@ -113,7 +150,38 @@ public class ImportDefinitionsService {
                 continue;
             }
             logger.info("   -> Binding: exchange={} → queue={} (key={})", binding.source(), binding.destination(), binding.routing_key());
-            rabbitApiService.createBindingIfNotExist(binding.source(), binding.routing_key(), binding.destination(), binding.vhost(), stats);
+            rabbitApiService.createBindingIfNotExist(binding, stats);
         }
+    }
+
+    /**
+     * Escapes special characters for Erlang regex (used by RabbitMQ permissions).
+     * RabbitMQ uses Erlang regex syntax, not Java regex.
+     * Special characters: . * + ? [ ] { } ( ) | ^ $ \
+     *
+     * @param input string to escape
+     * @return escaped string safe for use in Erlang regex
+     */
+    private String escapeErlangRegex(String input) {
+        if (input == null) {
+            return null;
+        }
+
+        // Escape each Erlang regex special character with backslash
+        return input
+                .replace("\\", "\\\\")  // Must be first! Escape backslash itself
+                .replace(".", "\\.")
+                .replace("*", "\\*")
+                .replace("+", "\\+")
+                .replace("?", "\\?")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("|", "\\|")
+                .replace("^", "\\^")
+                .replace("$", "\\$");
     }
 }

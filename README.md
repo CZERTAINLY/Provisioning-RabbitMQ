@@ -115,6 +115,15 @@ Adds a proxy to the RabbitMQ broker.
 
 The application is configured via `application.yml` and a specific definitions file.
 
+### Users
+
+There are some users needed:
+1. RabbitMQ user which can configure RabbitMQ via API (application.yml - `rabbitmq.username` and `rabbitmq.password`)
+1. core user - RabbitMQ user which can read/write to the exchange for core internal communication and to proxies' queues
+   - this user can be created by this service (application.yml - `rabbitmq.core.user.username`, `rabbitmq.core.user.password`, `rabbitmq.core.user.create`)
+   - if creation of this user is disabled then only username is required for rights management
+1. proxy users - every proxy is expected to have its own user with rights to read/write to the proxy's queues. Sharing of this users is not supported (because of user rights)
+
 ### RabbitMQ Connection
 
 Configure the connection details in `src/main/resources/application.yml` (or override them via environment variables):

@@ -5,7 +5,11 @@ rabbitmq:
   username: ${USERNAME}
   password: ${PASSWORD}
   definitions-file: ${DEFINITIONS_FILE:definitions.json}
-
+  core:
+    user:
+      create: ${CORE_USER_CREATE:true}
+      username: ${CORE_USER_USERNAME:core_user}
+      password: ${CORE_USER_PASSWORD:core_user_password}
 logging:
   level:
     root: INFO
