@@ -1,0 +1,144 @@
+openapi: 3.0.3
+info:
+  title: Proxy Provisioning API
+  description: |
+    API for provisioning and managing SaaS proxy instances.
+    Customer identification is done via X-API-Key header.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - apiKey: []
+
+paths:
+  /api/v1/proxies:
+    post:
+      summary: Provision a new proxy
+      description: Creates and provisions a new proxy instance
+      operationId: provisionProxy
+      tags:
+        - Proxy Provisioning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProxyProvisioningRequest'
+      responses:
+        '201':
+          description: Proxy provisioned successfully
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Proxy already exists
+
+  /api/v1/proxies/{proxyCode}/installation:
+    get:
+      summary: Get proxy installation instructions
+      description: Returns installation instructions for an existing proxy in the specified format
+      operationId: getInstallationInstructions
+      tags:
+        - Proxy Provisioning
+      parameters:
+        - $ref: '#/components/parameters/ProxyCode'
+        - name: format
+          in: query
+          required: true
+          description: Installation format
+          schema:
+            type: string
+            enum:
+              - helm
+              - curl
+              - terraform
+              - docker-compose
+            example: helm
+      responses:
+        '200':
+          description: Installation instructions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationInstructions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Proxy not found
+
+  /api/v1/proxies/{proxyCode}:
+    delete:
+      summary: Decommission a proxy
+      description: Removes and decommissions an existing proxy instance
+      operationId: decommissionProxy
+      tags:
+        - Proxy Provisioning
+      parameters:
+        - $ref: '#/components/parameters/ProxyCode'
+      responses:
+        '204':
+          description: Proxy decommissioned successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Proxy not found
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key for customer authentication. Required for all API calls.
+        The server identifies the customer based on this key.
+
+  responses:
+    Unauthorized:
+      description: Invalid or missing X-API-Key header
+
+  parameters:
+    ProxyCode:
+      name: proxyCode
+      in: path
+      required: true
+      description: Unique proxy code identifier
+      schema:
+        type: string
+        example: MY_PROXY_1
+
+  schemas:
+    ProxyProvisioningRequest:
+      type: object
+      description: Request for provisioning a new proxy
+      required:
+        - proxyCode
+      properties:
+        proxyCode:
+          type: string
+          description: Unique proxy identifier
+          example: MY_PROXY_1
+
+    InstallationInstructions:
+      type: object
+      description: Pre-rendered installation instructions
+      required:
+        - command
+      properties:
+        command:
+          $ref: '#/components/schemas/Command'
+
+    Command:
+      type: object
+      description: Command specification with the rendered shell command
+      required:
+        - shell
+      properties:
+        shell:
+          type: string
+          description: Fully rendered shell command ready for execution
+          example: helm install my-proxy oci://registry.example.com/charts/proxy --version 1.0.0 --namespace default --wait --atomic --set config.url=https://api.example.com

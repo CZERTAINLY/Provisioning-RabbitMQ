@@ -1,15 +1,25 @@
 server:
   port: ${PORT:8077}
-rabbitmq:
-  management-url: ${RABBITMQ_URL:http://localhost:15672}
-  username: ${USERNAME}
-  password: ${PASSWORD}
-  definitions-file: ${DEFINITIONS_FILE:definitions.json}
-  core:
-    user:
-      create: ${CORE_USER_CREATE:true}
-      username: ${CORE_USER_USERNAME:core_user}
-      password: ${CORE_USER_PASSWORD:core_user_password}
+
+spring:
+  application:
+    name: rabbit-sub-config-poc
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:provisioner}
+    password: ${RABBITMQ_PASSWORD:provisioner}
+  docker:
+    compose:
+      lifecycle-management: start_and_stop
+app:
+  security:
+    api-key: poc-secret-api-key
+  queue:
+    prefix: "proxy."
+    exchange: proxy.topic
+
 logging:
   level:
-    root: INFO
+    com.czertainly.rabbitmq.bootstrap: DEBUG
+    org.springframework.amqp: INFO

@@ -1,0 +1,8 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+
+app:
+  security:
+    api-key: test-api-key
