@@ -1,9 +1,9 @@
 package com.czertainly.rabbitmq.bootstrap.controller;
 
-import cz.svamberkserker.poc.rabbit.api.ProxyProvisioningApi;
-import cz.svamberkserker.poc.rabbit.model.Command;
-import cz.svamberkserker.poc.rabbit.model.InstallationInstructions;
-import cz.svamberkserker.poc.rabbit.model.ProxyProvisioningRequest;
+import com.czertainly.rabbitmq.bootstrap.api.ProxyProvisioningApi;
+import com.czertainly.rabbitmq.bootstrap.model.Command;
+import com.czertainly.rabbitmq.bootstrap.model.InstallationInstructions;
+import com.czertainly.rabbitmq.bootstrap.model.ProxyProvisioningRequest;
 import com.czertainly.rabbitmq.bootstrap.service.QueueProvisioningService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
