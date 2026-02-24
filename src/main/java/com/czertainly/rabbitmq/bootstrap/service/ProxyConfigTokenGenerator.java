@@ -1,18 +1,13 @@
 package com.czertainly.rabbitmq.bootstrap.service;
 
+import com.czertainly.rabbitmq.bootstrap.config.TokenProperties;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -33,31 +28,16 @@ import java.util.Map;
 @Service
 public class ProxyConfigTokenGenerator {
 
-    private static final int TOKEN_VERSION = 1;
-    private static final String TOKEN_SUBJECT = "proxy-config";
-    private static final String TEMPLATE_CLASSPATH = "classpath:templates/rabbitmq.proxy_config.template";
-
-    private final SecretKey signingKey;
+    private final TokenProperties tokenProperties;
     private final Template proxyConfigTemplate;
 
     public ProxyConfigTokenGenerator(
-        @Value("${app.token.signing-key}") String rawKey,
-        Mustache.Compiler mustacheCompiler,
-        @Value(TEMPLATE_CLASSPATH) Resource proxyConfigResource) throws IOException {
+        TokenProperties tokenProperties,
+        Mustache.Compiler mustacheCompiler) throws IOException {
 
-        // Validate raw key length (min. 32 bytes for HMAC-SHA256) and set signingKey if provided
-        if (!rawKey.isBlank()) {
-            byte[] keyBytes = rawKey.getBytes(StandardCharsets.UTF_8);
-            if (keyBytes.length < 32) {
-                throw new IllegalArgumentException(
-                    "app.token.signing-key must be at least 32 characters (256 bits) for HMAC-SHA256");
-            }
-            this.signingKey = Keys.hmacShaKeyFor(keyBytes);
-        } else {
-            this.signingKey = null;
-        }
+        this.tokenProperties = tokenProperties;
 
-        try (var reader = new InputStreamReader(proxyConfigResource.getInputStream(), StandardCharsets.UTF_8)) {
+        try (var reader = new InputStreamReader(tokenProperties.configTemplate().getInputStream(), StandardCharsets.UTF_8)) {
             this.proxyConfigTemplate = mustacheCompiler.compile(reader);
         }
     }
@@ -79,12 +59,12 @@ public class ProxyConfigTokenGenerator {
         Map<String, Object> configMap = new Yaml().load(renderedYaml);
 
         JwtBuilder builder = Jwts.builder()
-            .subject(TOKEN_SUBJECT)
-            .claim("v", TOKEN_VERSION)
+            .subject(tokenProperties.subject())
+            .claim("v", tokenProperties.version())
             .claim("config", configMap);
 
-        if (signingKey != null) {
-            builder.signWith(signingKey);
+        if (tokenProperties.signingKey() != null) {
+            builder.signWith(tokenProperties.signingKey());
         }
 
         if (expiresIn != null && !expiresIn.isZero()) {

@@ -18,6 +18,9 @@ app:
   token:
     # Must be at least 32 characters.
     signing-key: ${TOKEN_SIGNING_KEY:}
+    subject: proxy-config
+    version: 1
+    config-template: classpath:templates/rabbitmq.proxy_config.template
   proxy:
     # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
     amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}

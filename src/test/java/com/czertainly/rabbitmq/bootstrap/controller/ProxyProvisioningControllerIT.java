@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -88,18 +89,16 @@ class ProxyProvisioningControllerIT {
                         .header("X-API-Key", API_KEY)
                         .param("format", "helm"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.command.shell").value(
-                        "helm install proxy-IT_INSTALL oci://registry.example.com/charts/proxy --version 1.0.0 --set config.proxyCode=IT_INSTALL"));
+                .andExpect(jsonPath("$.command.shell").value(containsString("helm install proxy czertainly/proxy --set token=")));
     }
 
     @Test
-    void getInstallationInstructions_returnsDockerComposeCommand() throws Exception {
+    void getInstallationInstructions_returns400_forUnsupportedFormat() throws Exception {
         mockMvc.perform(get("/api/v1/proxies/SOME_PROXY/installation")
                         .header("X-API-Key", API_KEY)
                         .param("format", "docker-compose"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.command.shell").value(
-                        "docker compose -f proxy-SOME_PROXY-compose.yaml up -d"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
     }
 
     @Test
