@@ -1,0 +1,14 @@
+package com.czertainly.rabbitmq.bootstrap.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Configuration properties for proxy connectivity, bound from {@code app.proxy.*}.
+ */
+@ConfigurationProperties(prefix = "app.proxy")
+public record ProxyConfigProperties(
+        String amqpUrl,
+        String username,
+        String password,
+        String exchange
+) {}

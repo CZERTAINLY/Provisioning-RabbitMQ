@@ -15,9 +15,15 @@ spring:
 app:
   security:
     api-key: poc-secret-api-key
-  queue:
-    prefix: "proxy."
-    exchange: proxy.topic
+  token:
+    # Must be at least 32 characters.
+    signing-key: ${TOKEN_SIGNING_KEY:}
+  proxy:
+    # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
+    amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}
+    username: ${PROXY_RABBITMQ_USERNAME:${spring.rabbitmq.username}}
+    password: ${PROXY_RABBITMQ_PASSWORD:${spring.rabbitmq.password}}
+    exchange: ${PROXY_EXCHANGE:proxy.topic}
 
 logging:
   level:
