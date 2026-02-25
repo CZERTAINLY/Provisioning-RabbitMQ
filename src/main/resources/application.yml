@@ -3,7 +3,8 @@ server:
 
 spring:
   application:
-    name: rabbit-sub-config-poc
+    name: @project.artifactId@
+    version: @project.version@
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -11,10 +12,10 @@ spring:
     password: ${RABBITMQ_PASSWORD:provisioner}
   docker:
     compose:
-      lifecycle-management: start_and_stop
+      enabled: false
 app:
   security:
-    api-key: poc-secret-api-key
+    api-key: ${SECURITY_API_KEY:super-secret-api-key}
   proxy:
     # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
     amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}

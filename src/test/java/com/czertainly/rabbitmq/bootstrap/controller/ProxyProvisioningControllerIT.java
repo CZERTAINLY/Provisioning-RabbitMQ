@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
@@ -16,9 +17,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
+@TestPropertySource(properties = "app.security.api-key="+ ProxyProvisioningControllerIT.API_KEY)
 class ProxyProvisioningControllerIT {
 
-    private static final String API_KEY = "poc-secret-api-key";
+    public static final String API_KEY = "test-api-key";
 
     @Autowired
     private MockMvc mockMvc;
