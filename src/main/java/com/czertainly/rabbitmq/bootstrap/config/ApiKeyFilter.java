@@ -1,4 +1,4 @@
-package com.czertainly.rabbitmq.bootstrap.security;
+package com.czertainly.rabbitmq.bootstrap.config;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter implements Filter {
 
     private static final String API_KEY_HEADER = "X-API-Key";

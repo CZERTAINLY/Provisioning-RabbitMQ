@@ -34,6 +34,8 @@ app:
       config-template: classpath:templates/rabbitmq.proxy_config.template
 
 logging:
+  pattern:
+    correlation: "%X"
   level:
     com.czertainly.rabbitmq.bootstrap: DEBUG
     org.springframework.amqp: INFO
