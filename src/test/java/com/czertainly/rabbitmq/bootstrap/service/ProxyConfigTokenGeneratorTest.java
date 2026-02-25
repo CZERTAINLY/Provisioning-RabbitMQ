@@ -34,14 +34,13 @@ class ProxyConfigTokenGeneratorTest {
               password: "{{password}}"
               subscription: "{{queueName}}"
               topic_name: "{{exchange}}"
-              routing_key: "{{routingKey}}"
             """;
 
     private static final SecretKey SIGNING_KEY =
             Keys.hmacShaKeyFor("12345678901234567890123456789012".getBytes(StandardCharsets.UTF_8));
 
     private static final ProxyConfigData SAMPLE_DATA = new ProxyConfigData(
-            "amqp://localhost:5672", "user", "pass", "my-queue", "my-exchange", "my-routing-key");
+            "amqp://localhost:5672", "user", "pass", "my-queue", "my-exchange");
 
     @Mock
     private TokenProperties tokenProperties;
@@ -70,8 +69,7 @@ class ProxyConfigTokenGeneratorTest {
         assertThat(amqp)
                 .containsEntry("url", "amqp://localhost:5672")
                 .containsEntry("subscription", "my-queue")
-                .containsEntry("topic_name", "my-exchange")
-                .containsEntry("routing_key", "my-routing-key");
+                .containsEntry("topic_name", "my-exchange");
     }
 
     @Test

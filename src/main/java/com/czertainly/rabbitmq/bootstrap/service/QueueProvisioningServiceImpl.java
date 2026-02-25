@@ -10,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 
 @Service
 public class QueueProvisioningServiceImpl implements QueueProvisioningService {
@@ -35,10 +35,10 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
     private Template helmInstallTemplate;
 
     public QueueProvisioningServiceImpl(
-            RabbitAdmin rabbitAdmin,
-            ProxyConfigTokenGenerator tokenGenerator,
-            Mustache.Compiler mustacheCompiler,
-            ProxyConfigProperties proxyConfig) {
+        RabbitAdmin rabbitAdmin,
+        ProxyConfigTokenGenerator tokenGenerator,
+        Mustache.Compiler mustacheCompiler,
+        ProxyConfigProperties proxyConfig) {
         this.rabbitAdmin = rabbitAdmin;
         this.tokenGenerator = tokenGenerator;
         this.mustacheCompiler = mustacheCompiler;
@@ -56,24 +56,32 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
 
     @Override
     public void provisionQueue(String proxyCode) {
+        // create a durable queue with the name of the proxy code
         var queue = QueueBuilder.durable(proxyCode).build();
         rabbitAdmin.declareQueue(queue);
 
+        // create bindings for the request from core to proxy
         var exchange = new TopicExchange(proxyConfig.exchange());
-        var binding = BindingBuilder.bind(queue).to(exchange).with(proxyCode);
-        rabbitAdmin.declareBinding(binding);
+        // TODO: verify that the exchange exists
+
+        var requestRoutingKey = proxyConfig.requestRoutingKeyPrefix() + proxyCode;
+        var requestBinding = BindingBuilder.bind(queue).to(exchange).with(requestRoutingKey);
+        rabbitAdmin.declareBinding(requestBinding);
+
+        // create bindings for the response from proxy to core
+        var responseQueue = new Queue(proxyConfig.responseQueue());
+        // TODO: verify that the response queue exists
+
+        var responseRoutingKey = proxyConfig.responseRoutingKeyPrefix() + proxyCode;
+        var responseBinding = BindingBuilder.bind(responseQueue).to(exchange).with(responseRoutingKey);
+        rabbitAdmin.declareBinding(responseBinding);
 
         log.debug("Provisioned queue '{}' with binding to '{}' (routing key: '{}')",
-                proxyCode, proxyConfig.exchange(), proxyCode);
+            proxyCode, proxyConfig.exchange(), proxyCode);
     }
 
     @Override
     public void decommissionQueue(String proxyCode) {
-        Properties properties = rabbitAdmin.getQueueProperties(proxyCode);
-        if (properties == null) {
-            throw new QueueNotFoundException(proxyCode);
-        }
-
         rabbitAdmin.deleteQueue(proxyCode);
         log.debug("Decommissioned queue '{}'", proxyCode);
     }
@@ -84,14 +92,16 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
             throw new IllegalArgumentException("Format '%s' is not supported".formatted(format));
         }
 
-        if (rabbitAdmin.getQueueProperties(proxyCode) == null) {
+        if (rabbitAdmin.getQueueInfo(proxyCode) == null) {
             throw new QueueNotFoundException(proxyCode);
         }
 
-        // TODO: replace with per-proxy credentials
         var configData = new ProxyConfigData(
-                proxyConfig.amqpUrl(), proxyConfig.username(), proxyConfig.password(),
-                proxyCode, proxyConfig.exchange(), proxyCode);
+            proxyConfig.amqpUrl(),
+            proxyConfig.username(),
+            proxyConfig.password(),
+            proxyCode,
+            proxyConfig.exchange());
 
         String token = tokenGenerator.generateToken(configData);
         String command = helmInstallTemplate.execute(new HelmInstallData(token));

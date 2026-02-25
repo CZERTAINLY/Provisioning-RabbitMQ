@@ -9,4 +9,4 @@ amqp:
 
   subscription: "{{queueName}}"
   topic_name: "{{exchange}}"
-  routing_key: "{{routingKey}}"
+  response_topic: "{{exchange}}"

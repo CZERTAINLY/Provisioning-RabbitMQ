@@ -10,5 +10,9 @@ public record ProxyConfigProperties(
         String amqpUrl,
         String username,
         String password,
-        String exchange
+        String exchange,
+        String responseQueue,
+        String requestRoutingKeyPrefix,
+        String responseRoutingKeyPrefix
+
 ) {}

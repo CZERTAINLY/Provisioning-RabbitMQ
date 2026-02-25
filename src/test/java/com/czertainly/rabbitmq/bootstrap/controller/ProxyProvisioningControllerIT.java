@@ -68,11 +68,22 @@ class ProxyProvisioningControllerIT {
     }
 
     @Test
-    void decommissionProxy_returns404_whenNotFound() throws Exception {
-        mockMvc.perform(delete("/api/v1/proxies/NON_EXISTENT")
+    void decommissionProxy_isIdempotent() throws Exception {
+        mockMvc.perform(post("/api/v1/proxies")
+                        .header("X-API-Key", API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"proxyCode": "IT_IDEMPOTENT_DELETE"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(delete("/api/v1/proxies/IT_IDEMPOTENT_DELETE")
                         .header("X-API-Key", API_KEY))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/v1/proxies/IT_IDEMPOTENT_DELETE")
+                        .header("X-API-Key", API_KEY))
+                .andExpect(status().isNoContent());
     }
 
     @Test

@@ -1,8 +1,13 @@
 ###
-POST http://localhost:8080/api/v1/proxies
+POST http://localhost:8077/api/v1/proxies
 Content-Type: application/json
 X-API-Key: poc-secret-api-key
 
 {
   "proxyCode": "test-proxy"
 }
+
+
+###
+DELETE http://localhost:8077/api/v1/proxies/test-proxy
+X-API-Key: poc-secret-api-key

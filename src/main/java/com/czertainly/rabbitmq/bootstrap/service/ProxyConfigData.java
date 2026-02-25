@@ -9,6 +9,5 @@ public record ProxyConfigData(
         String username,
         String password,
         String queueName,
-        String exchange,
-        String routingKey
+        String exchange
 ) {}

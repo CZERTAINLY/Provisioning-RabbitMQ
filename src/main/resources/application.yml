@@ -26,7 +26,10 @@ app:
     amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}
     username: ${PROXY_RABBITMQ_USERNAME:${spring.rabbitmq.username}}
     password: ${PROXY_RABBITMQ_PASSWORD:${spring.rabbitmq.password}}
-    exchange: ${PROXY_EXCHANGE:proxy.topic}
+    exchange: ${PROXY_EXCHANGE:czertainly-proxy}
+    response-queue: ${PROXY_RESPONSE_QUEUE:core}
+    request-routing-key-prefix: coremessage.
+    response-routing-key-prefix: proxymessage.
 
 logging:
   level:
