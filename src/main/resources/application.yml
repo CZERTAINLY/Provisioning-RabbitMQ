@@ -24,6 +24,7 @@ app:
     response-queue: ${PROXY_RESPONSE_QUEUE:core}
     request-routing-key-prefix: coremessage.
     response-routing-key-prefix: proxymessage.
+    helm-install-template: classpath:templates/helm.install.template
     token-config:
       # Must be at least 32 characters.
       signing-key: ${TOKEN_SIGNING_KEY:}

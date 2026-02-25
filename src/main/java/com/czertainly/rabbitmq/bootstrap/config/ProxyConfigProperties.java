@@ -1,6 +1,7 @@
 package com.czertainly.rabbitmq.bootstrap.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.Resource;
 
 /**
  * Configuration properties for proxy connectivity, bound from {@code app.proxy.*}.
@@ -13,6 +14,7 @@ public record ProxyConfigProperties(
         String exchange,
         String responseQueue,
         String requestRoutingKeyPrefix,
-        String responseRoutingKeyPrefix
+        String responseRoutingKeyPrefix,
+        Resource helmInstallTemplate
 
 ) {}
