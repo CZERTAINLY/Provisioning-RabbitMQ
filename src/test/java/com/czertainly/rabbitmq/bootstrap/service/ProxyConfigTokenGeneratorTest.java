@@ -1,6 +1,6 @@
 package com.czertainly.rabbitmq.bootstrap.service;
 
-import com.czertainly.rabbitmq.bootstrap.config.TokenProperties;
+import com.czertainly.rabbitmq.bootstrap.config.ProxyTokenConfigProperties;
 import com.samskivert.mustache.Mustache;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -43,15 +43,15 @@ class ProxyConfigTokenGeneratorTest {
             "amqp://localhost:5672", "user", "pass", "my-queue", "my-exchange");
 
     @Mock
-    private TokenProperties tokenProperties;
+    private ProxyTokenConfigProperties proxyTokenConfigProperties;
 
     private ProxyConfigTokenGenerator buildGenerator(SecretKey key) throws Exception {
-        when(tokenProperties.signingKey()).thenReturn(key);
-        when(tokenProperties.subject()).thenReturn("proxy-config");
-        when(tokenProperties.version()).thenReturn(1);
-        when(tokenProperties.configTemplate()).thenReturn(
+        when(proxyTokenConfigProperties.signingKey()).thenReturn(key);
+        when(proxyTokenConfigProperties.subject()).thenReturn("proxy-config");
+        when(proxyTokenConfigProperties.version()).thenReturn(1);
+        when(proxyTokenConfigProperties.configTemplate()).thenReturn(
                 new ByteArrayResource(TEMPLATE_CONTENT.getBytes(StandardCharsets.UTF_8)));
-        return new ProxyConfigTokenGenerator(tokenProperties, Mustache.compiler());
+        return new ProxyConfigTokenGenerator(proxyTokenConfigProperties, Mustache.compiler());
     }
 
     @Test

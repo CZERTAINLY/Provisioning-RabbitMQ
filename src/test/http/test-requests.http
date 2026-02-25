@@ -11,3 +11,7 @@ X-API-Key: poc-secret-api-key
 ###
 DELETE http://localhost:8077/api/v1/proxies/test-proxy
 X-API-Key: poc-secret-api-key
+
+###
+GET http://localhost:8077/api/v1/proxies/test-proxy/installation?format=helm
+X-API-Key: poc-secret-api-key

@@ -8,15 +8,15 @@ import org.springframework.core.io.Resource;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 
-@ConfigurationProperties(prefix = "app.token")
-public record TokenProperties(
+@ConfigurationProperties(prefix = "app.proxy.token-config")
+public record ProxyTokenConfigProperties(
         SecretKey signingKey,
         String subject,
         int version,
         Resource configTemplate
 ) {
     @ConstructorBinding
-    public TokenProperties(String signingKey, String subject, int version, Resource configTemplate) {
+    public ProxyTokenConfigProperties(String signingKey, String subject, int version, Resource configTemplate) {
         this(toSecretKey(signingKey), subject, version, configTemplate);
     }
 

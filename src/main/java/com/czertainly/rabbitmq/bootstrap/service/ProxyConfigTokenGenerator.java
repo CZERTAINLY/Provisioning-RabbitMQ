@@ -1,6 +1,6 @@
 package com.czertainly.rabbitmq.bootstrap.service;
 
-import com.czertainly.rabbitmq.bootstrap.config.TokenProperties;
+import com.czertainly.rabbitmq.bootstrap.config.ProxyTokenConfigProperties;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import io.jsonwebtoken.JwtBuilder;
@@ -28,16 +28,16 @@ import java.util.Map;
 @Service
 public class ProxyConfigTokenGenerator {
 
-    private final TokenProperties tokenProperties;
+    private final ProxyTokenConfigProperties proxyTokenConfigProperties;
     private final Template proxyConfigTemplate;
 
     public ProxyConfigTokenGenerator(
-        TokenProperties tokenProperties,
+        ProxyTokenConfigProperties proxyTokenConfigProperties,
         Mustache.Compiler mustacheCompiler) throws IOException {
 
-        this.tokenProperties = tokenProperties;
+        this.proxyTokenConfigProperties = proxyTokenConfigProperties;
 
-        try (var reader = new InputStreamReader(tokenProperties.configTemplate().getInputStream(), StandardCharsets.UTF_8)) {
+        try (var reader = new InputStreamReader(proxyTokenConfigProperties.configTemplate().getInputStream(), StandardCharsets.UTF_8)) {
             this.proxyConfigTemplate = mustacheCompiler.compile(reader);
         }
     }
@@ -59,12 +59,12 @@ public class ProxyConfigTokenGenerator {
         Map<String, Object> configMap = new Yaml().load(renderedYaml);
 
         JwtBuilder builder = Jwts.builder()
-            .subject(tokenProperties.subject())
-            .claim("v", tokenProperties.version())
+            .subject(proxyTokenConfigProperties.subject())
+            .claim("v", proxyTokenConfigProperties.version())
             .claim("config", configMap);
 
-        if (tokenProperties.signingKey() != null) {
-            builder.signWith(tokenProperties.signingKey());
+        if (proxyTokenConfigProperties.signingKey() != null) {
+            builder.signWith(proxyTokenConfigProperties.signingKey());
         }
 
         if (expiresIn != null && !expiresIn.isZero()) {
