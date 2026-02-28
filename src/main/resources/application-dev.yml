@@ -1,0 +1,21 @@
+spring:
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start_and_stop
+
+management:
+  endpoint:
+    mappings:
+      access: unrestricted
+    env:
+      show-values: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+    access:
+      default: unrestricted
+  info:
+    env:
+      enabled: true

@@ -1,15 +1,42 @@
 server:
   port: ${PORT:8077}
-rabbitmq:
-  management-url: ${RABBITMQ_URL:http://localhost:15672}
-  username: ${USERNAME}
-  password: ${PASSWORD}
-  definitions-file: ${DEFINITIONS_FILE:definitions.json}
-  core:
-    user:
-      create: ${CORE_USER_CREATE:true}
-      username: ${CORE_USER_USERNAME:core_user}
-      password: ${CORE_USER_PASSWORD:core_user_password}
+
+spring:
+  application:
+    name: @project.artifactId@
+    version: @project.version@
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:provisioner}
+    password: ${RABBITMQ_PASSWORD:provisioner}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:czertainly}
+  docker:
+    compose:
+      enabled: false
+app:
+  security:
+    api-key: ${SECURITY_API_KEY:super-secret-api-key}
+  proxy:
+    # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
+    amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}
+    username: ${PROXY_RABBITMQ_USERNAME:${spring.rabbitmq.username}}
+    password: ${PROXY_RABBITMQ_PASSWORD:${spring.rabbitmq.password}}
+    exchange: ${PROXY_EXCHANGE:czertainly-proxy}
+    response-queue: ${PROXY_RESPONSE_QUEUE:core}
+    request-routing-key-prefix: coremessage.
+    response-routing-key-prefix: proxymessage.
+    helm-install-template: classpath:templates/helm.install.template
+    token-config:
+      # Must be at least 32 characters.
+      signing-key: ${TOKEN_SIGNING_KEY:}
+      subject: proxy-config
+      version: 1
+      config-template: classpath:templates/rabbitmq.proxy_config.template
+
 logging:
+  pattern:
+    correlation: "%X"
   level:
-    root: INFO
+    com.czertainly.rabbitmq.bootstrap: DEBUG
+    org.springframework.amqp: INFO

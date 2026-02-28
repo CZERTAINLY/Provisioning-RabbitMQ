@@ -1,0 +1,17 @@
+###
+POST http://localhost:8077/api/v1/proxies
+Content-Type: application/json
+X-API-Key: super-secret-api-key
+
+{
+  "proxyCode": "test-proxy"
+}
+
+
+###
+DELETE http://localhost:8077/api/v1/proxies/test-proxy
+X-API-Key: super-secret-api-key
+
+###
+GET http://localhost:8077/api/v1/proxies/test-proxy/installation?format=helm
+X-API-Key: super-secret-api-key

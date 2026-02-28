@@ -1,0 +1,6 @@
+# Add the Helm repository
+helm repo add czertainly https://cloudfieldcz.github.io/CZERTAINLY-Helm-Charts
+helm repo update
+
+# Install the chart
+helm install proxy czertainly/proxy --set token="{{token}}"

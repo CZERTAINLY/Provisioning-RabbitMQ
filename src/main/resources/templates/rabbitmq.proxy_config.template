@@ -1,0 +1,12 @@
+amqp:
+  broker_type: "rabbitmq"
+  url: "{{amqpUrl}}"
+  auth_method: "sasl-plain"
+
+  # Credentials
+  username: "{{username}}"
+  password: "{{password}}"
+
+  subscription: "{{queueName}}"
+  topic_name: "{{exchange}}"
+  response_topic: "{{exchange}}"

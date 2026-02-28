@@ -5,10 +5,7 @@ target/
 .kotlin
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -18,7 +15,7 @@ target/
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
@@ -38,3 +35,9 @@ build/
 ### Mac OS ###
 .DS_Store
 .env
+Thumbs.db
+
+*.swp
+*.swo
+*~
+bin/
