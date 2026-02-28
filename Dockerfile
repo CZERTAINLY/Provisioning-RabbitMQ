@@ -33,8 +33,7 @@ WORKDIR /app
 # Copy the built JAR from build stage
 COPY --from=build /app/target/rabbitBootstrap-1.0-SNAPSHOT.jar app.jar
 
-# Copy definitions file (if it exists in resources, it's already in JAR)
-# But allow overriding via volume mount
+# Allow mounting external configuration files (e.g., custom application.yml)
 VOLUME /app/config
 
 # Change ownership to non-root user
