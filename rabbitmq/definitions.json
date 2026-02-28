@@ -1,10 +1,21 @@
 {
   "users": [
     {
+      "name": "admin",
+      "password_hash": "kaFAmalQlq/xfQgMIerr4AG/eQsmHR+Tdl0lUxATI9mbOBK0",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [
+        "administrator"
+      ],
+      "limits": {}
+    },
+    {
       "name": "provisioner",
       "password_hash": "i1jHZntihmaPCruqDPM4zOvOZztqnkt2uokYDFj+mTpjBrBi",
       "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": ["administrator"],
+      "tags": [
+        "administrator"
+      ],
       "limits": {}
     },
     {
@@ -22,36 +33,60 @@
   ],
   "vhosts": [
     {
-      "name": "/"
+      "name": "czertainly",
+      "description": "",
+      "metadata": {
+        "description": "",
+        "tags": [],
+        "default_queue_type": "classic"
+      },
+      "tags": []
     }
   ],
   "permissions": [
     {
+      "user": "admin",
+      "vhost": "czertainly",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
       "user": "provisioner",
-      "vhost": "/",
+      "vhost": "czertainly",
       "configure": ".*",
       "write": ".*",
       "read": ".*"
     },
     {
       "user": "proxy",
-      "vhost": "/",
+      "vhost": "czertainly",
       "configure": "",
       "write": "^czertainly-proxy$",
       "read": "^proxy\\..*$"
     },
     {
       "user": "core",
-      "vhost": "/",
+      "vhost": "czertainly",
       "configure": "",
-      "write": "^czertainly-proxy$",
-      "read": "^core$"
+      "write": "^czertainly\\..*$",
+      "read": "^core\\..*$"
     }
   ],
+  "policies": [],
   "exchanges": [
     {
+      "name": "czertainly",
+      "vhost": "czertainly",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
       "name": "czertainly-proxy",
-      "vhost": "/",
+      "vhost": "czertainly",
       "type": "topic",
       "durable": true,
       "auto_delete": false,
@@ -61,13 +96,103 @@
   ],
   "queues": [
     {
+      "name": "core.audit-logs",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "core.notifications",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "core.scheduler",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "core.actions",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "core.validation",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "core.events",
+      "vhost": "czertainly",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
       "name": "core",
-      "vhost": "/",
+      "vhost": "czertainly",
       "durable": true,
       "auto_delete": false,
       "arguments": {}
     }
   ],
   "bindings": [
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.audit-logs",
+      "destination_type": "queue",
+      "routing_key": "audit-logs",
+      "arguments": {}
+    },
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.notifications",
+      "destination_type": "queue",
+      "routing_key": "notification",
+      "arguments": {}
+    },
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.actions",
+      "destination_type": "queue",
+      "routing_key": "action",
+      "arguments": {}
+    },
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.scheduler",
+      "destination_type": "queue",
+      "routing_key": "scheduler",
+      "arguments": {}
+    },
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.validation",
+      "destination_type": "queue",
+      "routing_key": "validation",
+      "arguments": {}
+    },
+    {
+      "source": "czertainly",
+      "vhost": "czertainly",
+      "destination": "core.events",
+      "destination_type": "queue",
+      "routing_key": "event",
+      "arguments": {}
+    }
   ]
 }

@@ -10,6 +10,7 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:provisioner}
     password: ${RABBITMQ_PASSWORD:provisioner}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:czertainly}
   docker:
     compose:
       enabled: false
