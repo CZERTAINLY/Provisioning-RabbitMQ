@@ -21,8 +21,8 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 public class QueueProvisioningServiceImpl implements QueueProvisioningService {
-
     private static final Logger log = LoggerFactory.getLogger(QueueProvisioningServiceImpl.class);
+
     private final RabbitAdmin rabbitAdmin;
     private final ProxyConfigTokenGenerator tokenGenerator;
     private final ProxyConfigProperties proxyConfig;
@@ -40,7 +40,6 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
         try (var reader = new InputStreamReader(proxyConfig.helmInstallTemplate().getInputStream(), StandardCharsets.UTF_8)) {
             this.helmInstallTemplate = mustacheCompiler.compile(reader);
         }
-        log.debug("Loaded helm install template from {}", proxyConfig.helmInstallTemplate());
     }
 
     @Override
@@ -57,6 +56,9 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
         var requestBinding = BindingBuilder.bind(queue).to(exchange).with(requestRoutingKey);
         rabbitAdmin.declareBinding(requestBinding);
 
+        log.info("Provisioned queue '{}' with binding to '{}' (routing key: '{}')",
+            proxyCode, proxyConfig.exchange(), requestRoutingKey);
+
         // create bindings for the response from proxy to core
         var responseQueue = new Queue(proxyConfig.responseQueue());
         // TODO: verify that the response queue exists
@@ -65,14 +67,14 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
         var responseBinding = BindingBuilder.bind(responseQueue).to(exchange).with(responseRoutingKey);
         rabbitAdmin.declareBinding(responseBinding);
 
-        log.debug("Provisioned queue '{}' with binding to '{}' (routing key: '{}')",
-            proxyCode, proxyConfig.exchange(), proxyCode);
+        log.info("Provisioned response binding for queue '{}' to exchange '{}' with routing key '{}'",
+            proxyConfig.responseQueue(), proxyConfig.exchange(), responseRoutingKey);
     }
 
     @Override
     public void decommissionQueue(String proxyCode) {
         rabbitAdmin.deleteQueue(proxyCode);
-        log.debug("Decommissioned queue '{}'", proxyCode);
+        log.info("Decommissioned queue '{}'", proxyCode);
     }
 
     @Override
