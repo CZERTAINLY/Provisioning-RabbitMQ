@@ -1,6 +1,6 @@
 # CZERTAINLY-rabbitmq-bootstrap
 
-The **rabbitmq-bootstrap** is a utility service designed as part of the [CZERTAINLY](https://github.com/CZERTAINLY/CZERTAINLY) platform. Its primary purpose is to initialize, configure, and import definitions (exchanges, queues, bindings) into the RabbitMQ instance used by the platform and adding new Proxy to the RabbitMQ broker.
+The **rabbitmq-bootstrap** is a proxy provisioning service designed as part of the [CZERTAINLY](https://github.com/CZERTAINLY/CZERTAINLY) platform. Its primary purpose is to provision and decommission RabbitMQ queues and bindings for proxy instances, and to generate signed JWT configuration tokens with installation instructions for those proxies.
 
 ## Table of Contents
 
@@ -14,135 +14,116 @@ The **rabbitmq-bootstrap** is a utility service designed as part of the [CZERTAI
 
 ## Overview
 
-**Note**: For now there is no authentication for the service.
-
 The service runs as a web application and exposes REST endpoints for:
-1. **Importing definitions** - Bulk creation of exchanges, queues, and bindings from a JSON file
-2. **Managing proxies** - Creating proxy communication infrastructure for CZERTAINLY connectors
+1. **Provisioning proxies** - Creating RabbitMQ queues and bindings for a proxy instance
+2. **Decommissioning proxies** - Removing RabbitMQ queues for a proxy instance
+3. **Installation instructions** - Generating signed JWT configuration tokens and rendering install commands (e.g., Helm)
+
+All endpoints require authentication via the `X-API-Key` header.
 
 ### REST Endpoints
 
-All endpoints return **JSON responses** (both success and error cases).
+All endpoints return **JSON responses** for errors. Authentication is required via `X-API-Key` header.
 
-#### `/api/import-definitions` (PUT)
-Imports definitions from the file specified in `application.yml` (by default it is `definitions.json`) or from a custom JSON provided in the request body.
-Format of Definitions is described in section **'Import file'**.
+#### `POST /api/v1/proxies`
+Provisions a new proxy instance by creating the required RabbitMQ queue and bindings.
+
+**Headers:**
+- `X-API-Key` (required) - API key for authentication
+
+**Request Body:**
+```json
+{
+  "proxyCode": "MY_PROXY_1"
+}
+```
+
+**Responses:**
+- `201 Created` — proxy provisioned successfully (empty body)
+- `400 Bad Request` — invalid request
+- `401 Unauthorized` — missing or invalid API key
+- `409 Conflict` — proxy already exists
+
+---
+
+#### `DELETE /api/v1/proxies/{proxyCode}`
+Decommissions an existing proxy instance by removing its RabbitMQ queue.
+
+**Headers:**
+- `X-API-Key` (required) - API key for authentication
+
+**Path Parameter:**
+- `proxyCode` — unique proxy code identifier
+
+**Responses:**
+- `204 No Content` — proxy decommissioned successfully
+- `401 Unauthorized` — missing or invalid API key
+- `404 Not Found` — proxy not found
+
+---
+
+#### `GET /api/v1/proxies/{proxyCode}/installation`
+Returns installation instructions for an existing proxy. Generates a signed JWT configuration token and renders it into the requested install format.
+
+**Headers:**
+- `X-API-Key` (required) - API key for authentication
+
+**Path Parameter:**
+- `proxyCode` — unique proxy code identifier
 
 **Query Parameters:**
-- `username` (optional) - Username for vhost permissions. Required when definitions contain non-default vhosts (other than "/").
-
-**Note:** The service automatically creates vhosts defined in the definitions file and sets up user permissions.
+- `format` (required) — installation format; currently supported: `helm`
 
 **Response (Success - 200 OK):**
 ```json
 {
-  "stats": {
-    "VHOST": {
-      "czertainly": "201 - Created"
-    },
-    "VHOSTRIGHTS": {
-      "czertainly-admin": "201 - Created"
-    },
-    "EXCHANGE": {
-      "my-exchange": "201 - Created"
-    },
-    "QUEUE": {
-      "my-queue": "204 - Already exists"
-    },
-    "BINDING": {
-      "my-exchange-routing.key-my-queue": "201 - Created"
-    }
+  "command": {
+    "shell": "helm repo add czertainly https://cloudfieldcz.github.io/CZERTAINLY-Helm-Charts\nhelm repo update\n\nhelm install proxy czertainly/proxy --set token=\"<jwt-token>\""
   }
 }
 ```
 
-**Response (Error - 400/500):**
+**Responses:**
+- `200 OK` — installation instructions returned
+- `401 Unauthorized` — missing or invalid API key
+- `404 Not Found` — proxy not found
+
+---
+
+**Error response format (all endpoints):**
 ```json
 {
-  "error": "Invalid JSON: Unexpected character..."
+  "error": "descriptive error message"
 }
 ```
-
-#### `/api/add-proxy` (PUT)
-Adds a proxy to the RabbitMQ broker.
-
-**Query Parameters:**
-- `proxyName` (required) - Name of the proxy (1-255 characters, alphanumeric with underscores and hyphens)
-- `vhost` (optional, default: "/") - Virtual host name
-- `username` (optional) - Username for vhost permissions. Required when vhost is not "/".
-
-**Note:** The service automatically creates the vhost if it doesn't exist and sets up user permissions.
-
-**Response (Success - 200 OK):**
-```json
-{
-  "stats": {
-    "VHOST": {
-      "czertainly": "201 - Created"
-    },
-    "VHOSTRIGHTS": {
-      "czertainly-admin": "201 - Created"
-    },
-    "EXCHANGE": {
-      "proxy": "204 - Already exists"
-    },
-    "QUEUE": {
-      "my-proxy": "201 - Created",
-      "proxy-response": "204 - Already exists"
-    },
-    "BINDING": {
-      "proxy-request.my-proxy-my-proxy": "201 - Created",
-      "proxy-response.*-proxy-response": "204 - Already exists"
-    }
-  }
-}
-```
-
-**Response (Error - 400/500):**
-```json
-{
-  "error": "proxyName must be 1-255 characters and contain only letters, numbers, underscores and hyphens"
-}
-``` 
 
 ## Prerequisites
 
 *   **Java 21** or higher
 *   **Maven 3.8+**
-*   Running instance of **RabbitMQ**
+*   Running instance of **RabbitMQ** with AMQP access (port 5672) and a configured virtual host
 
 ## Configuration
 
-The application is configured via `application.yml` and a specific definitions file.
-
-### Users
-
-There are some users needed:
-1. RabbitMQ user which can configure RabbitMQ via API (application.yml - `rabbitmq.username` and `rabbitmq.password`)
-1. core user - RabbitMQ user which can read/write to the exchange for core internal communication and to proxies' queues
-   - this user can be created by this service (application.yml - `rabbitmq.core.user.username`, `rabbitmq.core.user.password`, `rabbitmq.core.user.create`)
-   - if creation of this user is disabled then only username is required for rights management
-1. proxy users - every proxy is expected to have its own user with rights to read/write to the proxy's queues. Sharing of this users is not supported (because of user rights)
-
-### RabbitMQ Connection
-
-Configure the connection details in `src/main/resources/application.yml` (or override them via environment variables):
+The application is configured via `application.yml` and environment variables.
 
 ## Environment Variables
-in this table you can find all environment variables that can be used to override the default values in `application.yml`
 
-| Variable           | Description                                                                                                   | Required                                           | Default value            |
-|--------------------|---------------------------------------------------------------------------------------------------------------|----------------------------------------------------|--------------------------|
-| `PORT`             | Application port                                                                                              | ![](https://img.shields.io/badge/-NO-red.svg)      | `8077`                   |
-| `RABBITMQ_URL`     | RabbitMQ Management API URL with port (e.g. http://localhost:15672)                                           | ![](https://img.shields.io/badge/-NO-red.svg)      | `http://localhost:15672` |
-| `USERNAME`         | RabbitMQ admin username with rights for creating vhosts, queues, exchanges and bindings                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
-| `PASSWORD`         | RabbitMQ admin password                                                                                       | ![](https://img.shields.io/badge/-YES-success.svg) | `N/A`                    |
-| `DEFINITIONS_FILE` | JSON file with definitions of queues, exchanges and bindings [doc](https://www.rabbitmq.com/docs/definitions) | ![](https://img.shields.io/badge/-NO-red.svg)      | `definitions.json`       |
-
-
-## Import file
-A path to the import file is defined in application.yml (RabbitMQ file [doc](https://www.rabbitmq.com/docs/definitions))
-You can export your definitions from RabbitMQ Management UI or via API (``curl -u username:userpass http://your-rabbitmq:15672/api/definitions``)
+| Variable                  | Description                                                                                 | Required                                           | Default value            |
+|---------------------------|---------------------------------------------------------------------------------------------|----------------------------------------------------|--------------------------|
+| `PORT`                    | Application port                                                                            | ![](https://img.shields.io/badge/-NO-red.svg)      | `8077`                   |
+| `RABBITMQ_HOST`           | RabbitMQ hostname                                                                           | ![](https://img.shields.io/badge/-NO-red.svg)      | `localhost`              |
+| `RABBITMQ_PORT`           | RabbitMQ AMQP port                                                                          | ![](https://img.shields.io/badge/-NO-red.svg)      | `5672`                   |
+| `RABBITMQ_USERNAME`       | RabbitMQ username with permission to manage queues and bindings in the virtual host         | ![](https://img.shields.io/badge/-YES-success.svg) | `provisioner`            |
+| `RABBITMQ_PASSWORD`       | RabbitMQ password                                                                           | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
+| `RABBITMQ_VIRTUAL_HOST`   | RabbitMQ virtual host                                                                       | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly`             |
+| `SECURITY_API_KEY`        | API key required in the `X-API-Key` header for all requests                                | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
+| `PROXY_AMQP_URL`          | External AMQP URL that provisioned proxies use to connect (may differ from internal host)  | ![](https://img.shields.io/badge/-NO-red.svg)      | `amqp://localhost:5672`  |
+| `PROXY_RABBITMQ_USERNAME` | AMQP username embedded in the proxy configuration token                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_USERNAME` |
+| `PROXY_RABBITMQ_PASSWORD` | AMQP password embedded in the proxy configuration token                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_PASSWORD` |
+| `PROXY_EXCHANGE`          | Exchange name used for proxy communication                                                  | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly-proxy`       |
+| `PROXY_RESPONSE_QUEUE`    | Core response queue name                                                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | `core`                   |
+| `TOKEN_SIGNING_KEY`       | HMAC-SHA256 signing key for JWT configuration tokens (minimum 32 characters)               | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
 
 ## Build and Run
 
@@ -154,62 +135,46 @@ mvn clean package
 ### Run locally
 ```bash
 # Set required environment variables
-export USERNAME=admin
-export PASSWORD=admin
+export RABBITMQ_USERNAME=provisioner
+export RABBITMQ_PASSWORD=provisioner
+export SECURITY_API_KEY=my-secret-api-key
+export TOKEN_SIGNING_KEY=my-signing-key-at-least-32-characters-long
 
 # Run the application
 java -jar target/rabbitBootstrap-1.0-SNAPSHOT.jar
 ```
 
-The application will start on port 8077 (configurable via PORT environment variable).
+The application will start on port 8077 (configurable via `PORT` environment variable).
 
 ### Using the endpoints
 
-Import definitions (from default file):
+Provision a proxy:
 ```bash
-curl -X PUT "http://localhost:8077/api/import-definitions?username=admin"
-```
-
-Import definitions (with custom JSON):
-```bash
-curl -X PUT "http://localhost:8077/api/import-definitions?username=admin" \
+curl -X POST "http://localhost:8077/api/v1/proxies" \
+  -H "X-API-Key: my-secret-api-key" \
   -H "Content-Type: application/json" \
-  -d @my-definitions.json
+  -d '{"proxyCode": "MY_PROXY_1"}'
 ```
 
-Add a proxy (default vhost "/"):
+Get installation instructions (Helm):
 ```bash
-curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509"
-```
-
-Add a proxy (custom vhost):
-```bash
-curl -X PUT "http://localhost:8077/api/add-proxy?proxyName=connector-x509&vhost=czertainly&username=admin"
+curl "http://localhost:8077/api/v1/proxies/MY_PROXY_1/installation?format=helm" \
+  -H "X-API-Key: my-secret-api-key"
 ```
 
 Example response:
 ```json
 {
-  "stats": {
-    "VHOST": {
-      "czertainly": "201 - Created"
-    },
-    "VHOSTRIGHTS": {
-      "czertainly-admin": "201 - Created"
-    },
-    "EXCHANGE": {
-      "proxy": "201 - Created"
-    },
-    "QUEUE": {
-      "connector-x509": "201 - Created",
-      "proxy-response": "201 - Created"
-    },
-    "BINDING": {
-      "proxy-request.connector-x509-connector-x509": "201 - Created",
-      "proxy-response.*-proxy-response": "201 - Created"
-    }
+  "command": {
+    "shell": "# Add the Helm repository\nhelm repo add czertainly https://cloudfieldcz.github.io/CZERTAINLY-Helm-Charts\nhelm repo update\n\n# Install the chart\nhelm install proxy czertainly/proxy --set token=\"<jwt-token>\""
   }
 }
+```
+
+Decommission a proxy:
+```bash
+curl -X DELETE "http://localhost:8077/api/v1/proxies/MY_PROXY_1" \
+  -H "X-API-Key: my-secret-api-key"
 ```
 
 ## Docker
@@ -224,36 +189,28 @@ docker build -t czertainly/rabbitmq-bootstrap:latest .
 docker run -d \
   --name rabbitmq-bootstrap \
   -p 8077:8077 \
-  -e USERNAME=admin \
-  -e PASSWORD=admin \
-  -e RABBITMQ_URL=http://rabbitmq:15672 \
-  czertainly/rabbitmq-bootstrap:latest
-```
-
-### Run with custom definitions file
-If you want to use a custom definitions file, mount it as a volume:
-
-```bash
-docker run -d \
-  --name rabbitmq-bootstrap \
-  -p 8077:8077 \
-  -e USERNAME=admin \
-  -e PASSWORD=admin \
-  -e RABBITMQ_URL=http://rabbitmq:15672 \
-  -e DEFINITIONS_FILE=/app/config/custom-definitions.json \
-  -v $(pwd)/custom-definitions.json:/app/config/custom-definitions.json:ro \
+  -e RABBITMQ_HOST=rabbitmq \
+  -e RABBITMQ_USERNAME=provisioner \
+  -e RABBITMQ_PASSWORD=provisioner \
+  -e RABBITMQ_VIRTUAL_HOST=czertainly \
+  -e SECURITY_API_KEY=my-secret-api-key \
+  -e PROXY_AMQP_URL=amqp://rabbitmq:5672 \
+  -e TOKEN_SIGNING_KEY=my-signing-key-at-least-32-characters-long \
   czertainly/rabbitmq-bootstrap:latest
 ```
 
 ### Docker Compose
 
-The service expects an external RabbitMQ instance. Create a `.env` file with your RabbitMQ connection details:
+The service expects an external RabbitMQ instance. Create a `.env` file with your connection details:
 
 ```bash
-# Edit .env with your RabbitMQ connection details
-# USERNAME=admin
-# PASSWORD=admin
-# RABBITMQ_URL=http://your-rabbitmq-host:15672
+RABBITMQ_HOST=your-rabbitmq-host
+RABBITMQ_USERNAME=provisioner
+RABBITMQ_PASSWORD=provisioner
+RABBITMQ_VIRTUAL_HOST=czertainly
+SECURITY_API_KEY=my-secret-api-key
+PROXY_AMQP_URL=amqp://your-rabbitmq-host:5672
+TOKEN_SIGNING_KEY=my-signing-key-at-least-32-characters-long
 ```
 
 Then run with Docker Compose:
