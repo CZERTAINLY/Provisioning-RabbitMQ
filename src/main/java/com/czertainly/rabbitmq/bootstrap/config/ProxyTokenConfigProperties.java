@@ -25,7 +25,7 @@ public record ProxyTokenConfigProperties(
         byte[] keyBytes = rawKey.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             throw new IllegalArgumentException(
-                "app.token.signing-key must be at least 32 characters (256 bits) for HMAC-SHA256");
+                "app.proxy.token-config.signing-key must be at least 32 characters (256 bits) for HMAC-SHA256");
         }
         return Keys.hmacShaKeyFor(keyBytes);
     }
