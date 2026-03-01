@@ -129,7 +129,7 @@ The application is configured via `application.yml` and environment variables.
 
 ### Build
 ```bash
-mvn clean package
+./mvnw clean package
 ```
 
 ### Run locally

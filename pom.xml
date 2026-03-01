@@ -134,7 +134,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/proxy-provisioning-api.yaml</inputSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/proxy-provisioning-api.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <apiPackage>com.czertainly.rabbitmq.bootstrap.api</apiPackage>
                             <modelPackage>com.czertainly.rabbitmq.bootstrap.model</modelPackage>

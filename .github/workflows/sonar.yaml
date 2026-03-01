@@ -82,7 +82,7 @@ jobs:
           SONAR_PR_BRANCH: ${{ fromJson(steps.get_pr_data.outputs.data).head.ref }}
           SONAR_PR_BASE: ${{ fromJson(steps.get_pr_data.outputs.data).base.ref }}
         run: |
-          mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.scm.revision=$SONAR_REVISION \
             -Dsonar.pullrequest.key=$SONAR_PR_KEY \
             -Dsonar.pullrequest.branch=$SONAR_PR_BRANCH \
