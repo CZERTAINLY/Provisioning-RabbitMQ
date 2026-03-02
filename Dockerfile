@@ -1,21 +1,28 @@
 # Multi-stage build for CZERTAINLY RabbitMQ Bootstrap
 
 # Stage 1: Build
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /app
 
-# Copy pom.xml first for better layer caching
+# Copy Maven wrapper first
+COPY mvnw .
+COPY .mvn .mvn
+
+# Make mvnw executable
+RUN chmod +x mvnw
+
+# Copy pom.xml for better layer caching
 COPY pom.xml .
 
 # Download dependencies (cached if pom.xml doesn't change)
-RUN mvn dependency:go-offline -B
+RUN ./mvnw dependency:go-offline -B
 
 # Copy source code
 COPY src ./src
 
 # Build the application
-RUN mvn clean package -DskipTests
+RUN ./mvnw clean package -DskipTests
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
@@ -31,7 +38,7 @@ RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
 
 # Copy the built JAR from build stage
-COPY --from=build /app/target/rabbitBootstrap-1.0-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/*.jar app.jar
 
 # Allow mounting external configuration files (e.g., custom application.yml)
 VOLUME /app/config

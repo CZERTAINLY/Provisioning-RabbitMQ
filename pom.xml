@@ -17,6 +17,9 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <openapi-generator.version>7.19.0</openapi-generator.version>
+        <sonar.organization>czertainly</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.projectKey>CZERTAINLY_CZERTAINLY-rabbitmq-bootstrap</sonar.projectKey>
     </properties>
 
     <dependencies>
@@ -118,6 +121,10 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>${openapi-generator.version}</version>
@@ -127,7 +134,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/proxy-provisioning-api.yaml</inputSpec>
+                            <inputSpec>${project.basedir}/src/main/resources/proxy-provisioning-api.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <apiPackage>com.czertainly.rabbitmq.bootstrap.api</apiPackage>
                             <modelPackage>com.czertainly.rabbitmq.bootstrap.model</modelPackage>
