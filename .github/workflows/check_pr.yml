@@ -1,7 +1,11 @@
-name: "Build PR"
+name: "Check PR"
 on:
   pull_request:
     branches: [main*]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}-build-pr
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -23,7 +27,7 @@ jobs:
           java-version: 21
           distribution: 'temurin'
       - name: Cache Maven packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -32,18 +36,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./mvnw -B -U verify
-      - name: Write PR number to file
-        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
-      - name: Upload PR number artifact
+
+      # Package up PR context for downstream workflow_run
+      - name: Prepare PR context artifact
+        run: |
+          cat > pr-context.json <<'JSON'
+          {
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "head_sha":  "${{ github.event.pull_request.head.sha }}",
+            "head_repo": "${{ github.event.pull_request.head.repo.full_name }}",
+            "head_branch": "${{ github.event.pull_request.head.ref }}",
+            "base_ref": "${{ github.event.pull_request.base.ref }}",
+            "run_id": "${{ github.run_id }}"
+          }
+          JSON
+          cat pr-context.json
+
+      # Upload PR context
+      - name: Upload PR context
         uses: actions/upload-artifact@v5
         with:
-          name: pr-number
-          path: pr-number.txt
+          name: pr-context
+          path: pr-context.json
+          retention-days: 1
+          if-no-files-found: error
+
+      # Upload compiled classes
       - name: Upload Compiled Classes
         uses: actions/upload-artifact@v5
         with:
           name: compiled-classes
           path: target/classes
+
+      # Upload Jacoco XML report(s)
       - name: Upload Coverage Reports
         uses: actions/upload-artifact@v5
         with:

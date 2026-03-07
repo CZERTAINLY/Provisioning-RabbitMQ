@@ -109,21 +109,21 @@ The application is configured via `application.yml` and environment variables.
 
 ## Environment Variables
 
-| Variable                  | Description                                                                                 | Required                                           | Default value            |
-|---------------------------|---------------------------------------------------------------------------------------------|----------------------------------------------------|--------------------------|
-| `PORT`                    | Application port                                                                            | ![](https://img.shields.io/badge/-NO-red.svg)      | `8077`                   |
-| `RABBITMQ_HOST`           | RabbitMQ hostname                                                                           | ![](https://img.shields.io/badge/-NO-red.svg)      | `localhost`              |
-| `RABBITMQ_PORT`           | RabbitMQ AMQP port                                                                          | ![](https://img.shields.io/badge/-NO-red.svg)      | `5672`                   |
-| `RABBITMQ_USERNAME`       | RabbitMQ username with permission to manage queues and bindings in the virtual host         | ![](https://img.shields.io/badge/-YES-success.svg) | `provisioner`            |
-| `RABBITMQ_PASSWORD`       | RabbitMQ password                                                                           | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
-| `RABBITMQ_VIRTUAL_HOST`   | RabbitMQ virtual host                                                                       | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly`             |
-| `SECURITY_API_KEY`        | API key required in the `X-API-Key` header for all requests                                | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
-| `PROXY_AMQP_URL`          | External AMQP URL that provisioned proxies use to connect (may differ from internal host)  | ![](https://img.shields.io/badge/-NO-red.svg)      | `amqp://localhost:5672`  |
-| `PROXY_RABBITMQ_USERNAME` | AMQP username embedded in the proxy configuration token                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_USERNAME` |
-| `PROXY_RABBITMQ_PASSWORD` | AMQP password embedded in the proxy configuration token                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_PASSWORD` |
-| `PROXY_EXCHANGE`          | Exchange name used for proxy communication                                                  | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly-proxy`       |
-| `PROXY_RESPONSE_QUEUE`    | Core response queue name                                                                    | ![](https://img.shields.io/badge/-NO-red.svg)      | `core`                   |
-| `TOKEN_SIGNING_KEY`       | HMAC-SHA256 signing key for JWT configuration tokens (minimum 32 characters)               | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                      |
+| Variable                  | Description                                                                               | Required                                           | Default value               |
+|---------------------------|-------------------------------------------------------------------------------------------|----------------------------------------------------|-----------------------------|
+| `PORT`                    | Application port                                                                          | ![](https://img.shields.io/badge/-NO-red.svg)      | `8080`                      |
+| `RABBITMQ_HOST`           | RabbitMQ hostname                                                                         | ![](https://img.shields.io/badge/-NO-red.svg)      | `localhost`                 |
+| `RABBITMQ_PORT`           | RabbitMQ AMQP port                                                                        | ![](https://img.shields.io/badge/-NO-red.svg)      | `5672`                      |
+| `RABBITMQ_USERNAME`       | RabbitMQ username with permission to manage queues and bindings in the virtual host       | ![](https://img.shields.io/badge/-YES-success.svg) | `provisioner`               |
+| `RABBITMQ_PASSWORD`       | RabbitMQ password                                                                         | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                         |
+| `RABBITMQ_VIRTUAL_HOST`   | RabbitMQ virtual host                                                                     | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly`                |
+| `SECURITY_API_KEY`        | API key required in the `X-API-Key` header for all requests                               | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                         |
+| `PROXY_AMQP_URL`          | External AMQP URL that provisioned proxies use to connect (may differ from internal host) | ![](https://img.shields.io/badge/-NO-red.svg)      | `amqp://localhost:5672`     |
+| `PROXY_RABBITMQ_USERNAME` | AMQP username embedded in the proxy configuration token                                   | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_USERNAME` |
+| `PROXY_RABBITMQ_PASSWORD` | AMQP password embedded in the proxy configuration token                                   | ![](https://img.shields.io/badge/-NO-red.svg)      | same as `RABBITMQ_PASSWORD` |
+| `PROXY_EXCHANGE`          | Exchange name used for proxy communication                                                | ![](https://img.shields.io/badge/-NO-red.svg)      | `czertainly-proxy`          |
+| `PROXY_RESPONSE_QUEUE`    | Core response queue name                                                                  | ![](https://img.shields.io/badge/-NO-red.svg)      | `core`                      |
+| `TOKEN_SIGNING_KEY`       | HMAC-SHA256 signing key for JWT configuration tokens (minimum 32 characters)              | ![](https://img.shields.io/badge/-YES-success.svg) | N/A                         |
 
 ## Build and Run
 
@@ -144,13 +144,13 @@ export TOKEN_SIGNING_KEY=my-signing-key-at-least-32-characters-long
 java -jar target/rabbitBootstrap-1.0-SNAPSHOT.jar
 ```
 
-The application will start on port 8077 (configurable via `PORT` environment variable).
+The application will start on port 8080 (configurable via `PORT` environment variable).
 
 ### Using the endpoints
 
 Provision a proxy:
 ```bash
-curl -X POST "http://localhost:8077/api/v1/proxies" \
+curl -X POST "http://localhost:8080/api/v1/proxies" \
   -H "X-API-Key: my-secret-api-key" \
   -H "Content-Type: application/json" \
   -d '{"proxyCode": "MY_PROXY_1"}'
@@ -158,7 +158,7 @@ curl -X POST "http://localhost:8077/api/v1/proxies" \
 
 Get installation instructions (Helm):
 ```bash
-curl "http://localhost:8077/api/v1/proxies/MY_PROXY_1/installation?format=helm" \
+curl "http://localhost:8080/api/v1/proxies/MY_PROXY_1/installation?format=helm" \
   -H "X-API-Key: my-secret-api-key"
 ```
 
@@ -173,7 +173,7 @@ Example response:
 
 Decommission a proxy:
 ```bash
-curl -X DELETE "http://localhost:8077/api/v1/proxies/MY_PROXY_1" \
+curl -X DELETE "http://localhost:8080/api/v1/proxies/MY_PROXY_1" \
   -H "X-API-Key: my-secret-api-key"
 ```
 
@@ -188,7 +188,7 @@ docker build -t czertainly/rabbitmq-bootstrap:latest .
 ```bash
 docker run -d \
   --name rabbitmq-bootstrap \
-  -p 8077:8077 \
+  -p 8080:8080 \
   -e RABBITMQ_HOST=rabbitmq \
   -e RABBITMQ_USERNAME=provisioner \
   -e RABBITMQ_PASSWORD=provisioner \
@@ -227,11 +227,4 @@ docker-compose logs -f rabbitmq-bootstrap
 Stop the service:
 ```bash
 docker-compose down
-```
-
-### Health check
-The Docker image includes a health check endpoint via Spring Boot Actuator:
-
-```bash
-curl http://localhost:8077/actuator/health
 ```
