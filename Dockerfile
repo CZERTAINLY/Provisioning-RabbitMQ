@@ -45,7 +45,9 @@ COPY --from=optimize /javaruntime $JAVA_HOME
 LABEL org.opencontainers.image.authors="ILM <support@otilm.com>"
 
 # add non root user cscapi
-RUN addgroup --system --gid 10001 cscapi && adduser --system --home /opt/cscapi --uid 10001 --ingroup cscapi cscapi
+RUN apk upgrade --no-cache \
+    && addgroup --system --gid 10001 czertainly \
+    && adduser --system --home /opt/czertainly --uid 10001 --ingroup czertainly czertainly
 
 COPY --from=build /home/app/docker /
 COPY --from=build /home/app/target/*.jar /opt/czertainly/app.jar
