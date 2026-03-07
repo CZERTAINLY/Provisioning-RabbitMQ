@@ -47,7 +47,7 @@ jobs:
     - name: Build
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./mvnw -B -U verify
+      run: mvn -B -U verify
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
