@@ -1,60 +1,65 @@
-# Multi-stage build for CZERTAINLY RabbitMQ Bootstrap
+# Build stage
+FROM maven:3.9.12-eclipse-temurin-21 AS build
 
-# Stage 1: Build
-FROM eclipse-temurin:21-jdk-alpine AS build
+COPY src /home/app/src
+COPY pom.xml /home/app
+COPY docker /home/app/docker
 
-WORKDIR /app
+RUN mvn -f /home/app/pom.xml clean package -DskipTests
 
-# Copy Maven wrapper first
-COPY mvnw .
-COPY .mvn .mvn
+# Optimize stage
+FROM eclipse-temurin:21-jdk-alpine AS optimize
 
-# Make mvnw executable
-RUN chmod +x mvnw
-
-# Copy pom.xml for better layer caching
-COPY pom.xml .
-
-# Download dependencies (cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
-
-# Copy source code
-COPY src ./src
-
-# Build the application
-RUN ./mvnw clean package -DskipTests
-
-# Stage 2: Runtime
-FROM eclipse-temurin:21-jre-alpine
-
-# Add labels for better image documentation
-LABEL maintainer="CZERTAINLY"
-LABEL description="RabbitMQ Bootstrap Service for CZERTAINLY Platform"
-LABEL version="1.0-SNAPSHOT"
-
-# Create non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
+COPY --from=build /home/app/target/*.jar /app/app.jar
 
 WORKDIR /app
 
-# Copy the built JAR from build stage
-COPY --from=build /app/target/*.jar app.jar
+# List jar modules
+RUN jar xf app.jar
+RUN jdeps \
+  --ignore-missing-deps \
+  --print-module-deps \
+  --multi-release 21 \
+  --recursive \
+  --class-path 'BOOT-INF/lib/*' \
+  app.jar > modules.txt
 
-# Allow mounting external configuration files (e.g., custom application.yml)
-VOLUME /app/config
+# Create a custom Java runtime
+RUN $JAVA_HOME/bin/jlink \
+  --add-modules $(cat modules.txt),jdk.crypto.ec \
+  --strip-debug \
+  --no-man-pages \
+  --no-header-files \
+  --compress=2 \
+  --output /javaruntime
 
-# Change ownership to non-root user
-RUN chown -R spring:spring /app
+# Package stage
+FROM alpine:latest
 
-# Switch to non-root user
-USER spring:spring
+ENV JAVA_HOME=/opt/jre
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-# Expose the application port
-EXPOSE 8077
+# copy optimized JRE
+COPY --from=optimize /javaruntime $JAVA_HOME
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8077/actuator/health || exit 1
+LABEL org.opencontainers.image.authors="ILM <support@otilm.com>"
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# add non root user cscapi
+RUN apk upgrade --no-cache \
+    && addgroup --system --gid 10001 czertainly \
+    && adduser --system --home /opt/czertainly --uid 10001 --ingroup czertainly czertainly
+
+COPY --from=build /home/app/docker /
+COPY --from=build /home/app/target/*.jar /opt/czertainly/app.jar
+
+WORKDIR /opt/czertainly
+
+ENV PORT=8080
+
+ENV HTTP_PROXY=
+ENV HTTPS_PROXY=
+ENV NO_PROXY=
+
+USER 10001
+
+ENTRYPOINT ["/opt/czertainly/entry.sh"]

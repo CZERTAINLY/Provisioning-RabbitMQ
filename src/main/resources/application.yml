@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8077}
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -38,5 +38,5 @@ logging:
   pattern:
     correlation: "%X"
   level:
-    com.czertainly.rabbitmq.bootstrap: DEBUG
+    com.czertainly.rabbitmq.bootstrap: INFO
     org.springframework.amqp: INFO
