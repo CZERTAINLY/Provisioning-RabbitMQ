@@ -19,6 +19,7 @@ permissions:
   contents: read
   checks: write
   pull-requests: read
+  actions: read
 
 jobs:
   sonar:
