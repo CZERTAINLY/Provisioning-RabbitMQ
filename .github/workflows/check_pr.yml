@@ -35,7 +35,7 @@ jobs:
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw -B -U verify
+        run: mvn -B -U verify
 
       # Package up PR context for downstream workflow_run
       - name: Prepare PR context artifact
