@@ -59,7 +59,7 @@ jobs:
             core.setOutput("check_id", check.data.id);
 
       # Checkout fork PR branch + fetch base to compute diff
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: ${{ env.HEAD_REPO }}
           ref: ${{ env.PR_BRANCH }}
@@ -74,7 +74,7 @@ jobs:
           git clean -ffdx && git reset --hard HEAD
 
       - name: Download Compiled Classes from upstream run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: compiled-classes
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +82,7 @@ jobs:
           path: target/classes
 
       - name: Download Coverage Reports from upstream run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-reports
           github-token: ${{ secrets.GITHUB_TOKEN }}
