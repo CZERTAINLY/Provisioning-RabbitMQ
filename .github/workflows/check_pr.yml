@@ -54,7 +54,7 @@ jobs:
 
       # Upload PR context
       - name: Upload PR context
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pr-context
           path: pr-context.json
@@ -63,14 +63,14 @@ jobs:
 
       # Upload compiled classes
       - name: Upload Compiled Classes
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: compiled-classes
           path: target/classes
 
       # Upload Jacoco XML report(s)
       - name: Upload Coverage Reports
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
           path: target/site/jacoco/jacoco.xml

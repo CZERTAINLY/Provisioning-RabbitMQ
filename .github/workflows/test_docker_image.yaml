@@ -53,7 +53,7 @@ jobs:
           exit-code: 0
 
       - name: Upload vulnerability report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-report-amd64
           path: trivy-report-amd64.json
@@ -99,7 +99,7 @@ jobs:
           exit-code: 0
 
       - name: Upload vulnerability report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-report-arm64
           path: trivy-report-arm64.json
