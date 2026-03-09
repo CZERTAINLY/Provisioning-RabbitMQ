@@ -1,13 +1,10 @@
 package com.czertainly.rabbitmq.bootstrap.config;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -15,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
+@ConditionalOnProperty(name = "app.security.api-key")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter implements Filter {
 
@@ -22,13 +20,18 @@ public class ApiKeyFilter implements Filter {
 
     private final String expectedApiKey;
 
-    public ApiKeyFilter(@Value("${app.security.api-key}") String expectedApiKey) {
+    public ApiKeyFilter(@Value("${app.security.api-key:}") String expectedApiKey) {
         this.expectedApiKey = expectedApiKey;
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        if (expectedApiKey.isBlank()) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         var httpRequest = (HttpServletRequest) request;
         var httpResponse = (HttpServletResponse) response;
 

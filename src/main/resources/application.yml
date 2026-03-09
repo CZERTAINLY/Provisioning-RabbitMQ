@@ -16,7 +16,7 @@ spring:
       enabled: false
 app:
   security:
-    api-key: ${SECURITY_API_KEY:super-secret-api-key}
+    api-key: ${SECURITY_API_KEY:}
   proxy:
     # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
     amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}

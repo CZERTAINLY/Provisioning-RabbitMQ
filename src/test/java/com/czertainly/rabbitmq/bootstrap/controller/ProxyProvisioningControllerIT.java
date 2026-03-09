@@ -1,6 +1,7 @@
 package com.czertainly.rabbitmq.bootstrap.controller;
 
 import com.czertainly.rabbitmq.bootstrap.TestcontainersConfiguration;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -133,5 +134,37 @@ class ProxyProvisioningControllerIT {
                                 {"proxyCode": "WRONG_AUTH"}
                                 """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Nested
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    @Import(TestcontainersConfiguration.class)
+    @TestPropertySource(properties = "app.security.api-key=")
+    class WithApiKeyDisabledIT {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void anyRequest_returns2xx_withoutApiKeyHeader() throws Exception {
+            mockMvc.perform(post("/api/v1/proxies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"proxyCode": "NO_AUTH_DISABLED"}
+                                    """))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        void anyRequest_returns2xx_withAnyApiKeyHeader() throws Exception {
+            mockMvc.perform(post("/api/v1/proxies")
+                            .header("X-API-Key", "any-random-key")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"proxyCode": "ANY_KEY_DISABLED"}
+                                    """))
+                    .andExpect(status().isCreated());
+        }
     }
 }
