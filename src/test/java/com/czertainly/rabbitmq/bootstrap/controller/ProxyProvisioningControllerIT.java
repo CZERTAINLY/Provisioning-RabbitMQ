@@ -136,6 +136,12 @@ class ProxyProvisioningControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void actuatorHealth_returns200_withoutApiKey() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
     @Nested
     @SpringBootTest
     @AutoConfigureMockMvc
