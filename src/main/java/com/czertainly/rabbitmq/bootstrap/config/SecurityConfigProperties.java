@@ -7,5 +7,6 @@ import java.util.List;
 @ConfigurationProperties(prefix = "app.security")
 public record SecurityConfigProperties(
         String apiKey,
+        String apiKeyHeader,
         List<String> publicPaths
 ) {}

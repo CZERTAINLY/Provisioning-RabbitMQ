@@ -9,28 +9,22 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
 
 @Component
 @ConditionalOnProperty(name = "app.security.api-key")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter implements Filter {
 
-    private static final String API_KEY_HEADER = "X-API-Key";
-
-    private final String expectedApiKey;
-    private final List<String> publicPaths;
+    private final SecurityConfigProperties properties;
 
     public ApiKeyFilter(SecurityConfigProperties properties) {
-        this.expectedApiKey = Objects.requireNonNullElse(properties.apiKey(), "");
-        this.publicPaths = Objects.requireNonNullElse(properties.publicPaths(), List.of());
+        this.properties = properties;
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if (expectedApiKey.isBlank()) {
+        if (properties.apiKey() == null || properties.apiKey().isBlank()) {
             chain.doFilter(request, response);
             return;
         }
@@ -39,16 +33,16 @@ public class ApiKeyFilter implements Filter {
         var httpResponse = (HttpServletResponse) response;
 
         String requestUri = httpRequest.getRequestURI();
-        if (publicPaths.stream().anyMatch(requestUri::startsWith)) {
+        if (properties.publicPaths() != null && properties.publicPaths().stream().anyMatch(requestUri::startsWith)) {
             chain.doFilter(request, response);
             return;
         }
 
-        String apiKey = httpRequest.getHeader(API_KEY_HEADER);
-        if (!expectedApiKey.equals(apiKey)) {
+        String apiKey = httpRequest.getHeader(properties.apiKeyHeader());
+        if (!properties.apiKey().equals(apiKey)) {
             httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             httpResponse.setContentType("application/json");
-            httpResponse.getWriter().write("{\"error\":\"Invalid or missing X-API-Key header\"}");
+            httpResponse.getWriter().write("{\"error\":\"Invalid or missing " + properties.apiKeyHeader() + " header\"}");
             return;
         }
 
