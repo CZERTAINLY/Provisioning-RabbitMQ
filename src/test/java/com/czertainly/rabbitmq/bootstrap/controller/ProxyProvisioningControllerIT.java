@@ -18,7 +18,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "app.security.api-key="+ ProxyProvisioningControllerIT.API_KEY)
+@TestPropertySource(properties = {
+        "app.security.api-key-enabled=true",
+        "app.security.api-key=" + ProxyProvisioningControllerIT.API_KEY
+})
 class ProxyProvisioningControllerIT {
 
     public static final String API_KEY = "test-api-key";
@@ -146,7 +149,7 @@ class ProxyProvisioningControllerIT {
     @SpringBootTest
     @AutoConfigureMockMvc
     @Import(TestcontainersConfiguration.class)
-    @TestPropertySource(properties = "app.security.api-key=")
+    @TestPropertySource(properties = "app.security.api-key-enabled=false")
     class WithApiKeyDisabledIT {
 
         @Autowired

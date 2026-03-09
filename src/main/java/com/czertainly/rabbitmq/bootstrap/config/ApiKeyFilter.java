@@ -11,24 +11,23 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
-@ConditionalOnProperty(name = "app.security.api-key")
+@ConditionalOnProperty(name = "app.security.api-key-enabled", havingValue = "true")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter implements Filter {
 
     private final SecurityConfigProperties properties;
 
     public ApiKeyFilter(SecurityConfigProperties properties) {
+        if (properties.apiKey() == null || properties.apiKey().isBlank()) {
+            throw new IllegalStateException(
+                    "app.security.api-key must be set when app.security.api-key-enabled is true");
+        }
         this.properties = properties;
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if (properties.apiKey() == null || properties.apiKey().isBlank()) {
-            chain.doFilter(request, response);
-            return;
-        }
-
         var httpRequest = (HttpServletRequest) request;
         var httpResponse = (HttpServletResponse) response;
 

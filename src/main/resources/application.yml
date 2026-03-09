@@ -16,6 +16,7 @@ spring:
       enabled: false
 app:
   security:
+    api-key-enabled: ${SECURITY_API_KEY_ENABLED:false}
     api-key: ${SECURITY_API_KEY:}
     api-key-header: ${SECURITY_API_KEY_HEADER:X-API-Key}
     public-paths:
