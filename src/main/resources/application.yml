@@ -16,7 +16,11 @@ spring:
       enabled: false
 app:
   security:
-    api-key: ${SECURITY_API_KEY:super-secret-api-key}
+    api-key-enabled: ${SECURITY_API_KEY_ENABLED:false}
+    api-key: ${SECURITY_API_KEY:}
+    api-key-header: ${SECURITY_API_KEY_HEADER:X-API-Key}
+    public-paths:
+      - /actuator/health
   proxy:
     # External AMQP URL that proxies use to connect (may differ from internal spring.rabbitmq.host).
     amqp-url: ${PROXY_AMQP_URL:amqp://localhost:5672}

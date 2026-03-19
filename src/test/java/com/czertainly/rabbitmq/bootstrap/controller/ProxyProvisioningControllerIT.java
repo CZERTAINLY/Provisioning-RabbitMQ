@@ -1,6 +1,7 @@
 package com.czertainly.rabbitmq.bootstrap.controller;
 
 import com.czertainly.rabbitmq.bootstrap.TestcontainersConfiguration;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,12 +13,16 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "app.security.api-key="+ ProxyProvisioningControllerIT.API_KEY)
+@TestPropertySource(properties = {
+        "app.security.api-key-enabled=true",
+        "app.security.api-key=" + ProxyProvisioningControllerIT.API_KEY
+})
 class ProxyProvisioningControllerIT {
 
     public static final String API_KEY = "test-api-key";
@@ -133,5 +138,43 @@ class ProxyProvisioningControllerIT {
                                 {"proxyCode": "WRONG_AUTH"}
                                 """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void actuatorHealth_returns200_withoutApiKey() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Nested
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    @Import(TestcontainersConfiguration.class)
+    @TestPropertySource(properties = "app.security.api-key-enabled=false")
+    class WithApiKeyDisabledIT {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void anyRequest_returns2xx_withoutApiKeyHeader() throws Exception {
+            mockMvc.perform(post("/api/v1/proxies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"proxyCode": "NO_AUTH_DISABLED"}
+                                    """))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        void anyRequest_returns2xx_withAnyApiKeyHeader() throws Exception {
+            mockMvc.perform(post("/api/v1/proxies")
+                            .header("X-API-Key", "any-random-key")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"proxyCode": "ANY_KEY_DISABLED"}
+                                    """))
+                    .andExpect(status().isCreated());
+        }
     }
 }

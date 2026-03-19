@@ -1,13 +1,9 @@
 package com.czertainly.rabbitmq.bootstrap.config;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -15,15 +11,18 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
+@ConditionalOnProperty(name = "app.security.api-key-enabled", havingValue = "true")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter implements Filter {
 
-    private static final String API_KEY_HEADER = "X-API-Key";
+    private final SecurityConfigProperties properties;
 
-    private final String expectedApiKey;
-
-    public ApiKeyFilter(@Value("${app.security.api-key}") String expectedApiKey) {
-        this.expectedApiKey = expectedApiKey;
+    public ApiKeyFilter(SecurityConfigProperties properties) {
+        if (properties.apiKey() == null || properties.apiKey().isBlank()) {
+            throw new IllegalStateException(
+                    "app.security.api-key must be set when app.security.api-key-enabled is true");
+        }
+        this.properties = properties;
     }
 
     @Override
@@ -32,11 +31,17 @@ public class ApiKeyFilter implements Filter {
         var httpRequest = (HttpServletRequest) request;
         var httpResponse = (HttpServletResponse) response;
 
-        String apiKey = httpRequest.getHeader(API_KEY_HEADER);
-        if (!expectedApiKey.equals(apiKey)) {
+        String requestUri = httpRequest.getRequestURI();
+        if (properties.publicPaths() != null && properties.publicPaths().stream().anyMatch(requestUri::startsWith)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        String apiKey = httpRequest.getHeader(properties.apiKeyHeader());
+        if (!properties.apiKey().equals(apiKey)) {
             httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             httpResponse.setContentType("application/json");
-            httpResponse.getWriter().write("{\"error\":\"Invalid or missing X-API-Key header\"}");
+            httpResponse.getWriter().write("{\"error\":\"Invalid or missing " + properties.apiKeyHeader() + " header\"}");
             return;
         }
 
