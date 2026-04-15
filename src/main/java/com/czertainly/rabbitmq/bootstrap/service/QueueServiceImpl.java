@@ -34,6 +34,8 @@ public class QueueServiceImpl implements QueueService {
             rabbitAdmin.declareQueue(queue);
         } catch (AmqpException e) {
             if (containsPreconditionFailed(e)) {
+                log.warn("Queue '{}' already exists or has conflicting properties; preserving original AMQP exception in logs",
+                        request.getName(), e);
                 throw new QueueAlreadyExistsException(request.getName());
             }
             throw e;
