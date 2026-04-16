@@ -40,7 +40,7 @@ public class QueueProvisioningServiceImpl implements QueueProvisioningService {
     @Override
     public void deleteQueue(String name) {
         rabbitAdminSupport.deleteQueue(name);
-        log.info("Deleted queue '{}'", name);
+        log.info("Attempted to delete queue '{}'", name);
     }
 
     // Walk the full cause chain: Spring AMQP can wrap the RabbitMQ channel exception
